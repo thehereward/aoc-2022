@@ -1,12 +1,6 @@
-const fs = require("fs");
-const { EOL } = require("os");
+import { readFile } from "../common";
 
-try {
-  var data = fs.readFileSync("input", "utf8");
-  data = data.split(EOL);
-} catch (err) {
-  console.error(err);
-}
+var data = readFile("input");
 
 var index = 0;
 var munged = data.reduce(
