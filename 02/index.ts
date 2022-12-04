@@ -2,24 +2,70 @@ import { readFile } from "../common";
 
 var data = readFile("input");
 
-var index = 0;
-var munged = data.reduce(
-  (a: number[], c: string) => {
-    if (c.length == 0) {
-      index = index + 1;
-      a[index] = 0;
-      return a;
+function intersection<T>(setA: Set<T>, setB: Set<T>) {
+  const _intersection = new Set<T>();
+  for (const elem of setB) {
+    if (setA.has(elem)) {
+      _intersection.add(elem);
     }
+  }
+  return _intersection;
+}
 
-    a[index] = a[index] + parseInt(c);
-    return a;
-  },
-  [0]
-);
+const lookUp = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-munged.sort().reverse();
+const values = data.map((line) => {
+  const c1 = new Set(line.substring(0, line.length / 2).split(""));
+  const c2 = new Set(line.substring(line.length / 2).split(""));
+  const intersect = intersection(c1, c2);
+  return intersect;
+});
 
-const answer = munged[0] + munged[1] + munged[2];
+const secondPart = data.map((line) => {
+  const set = new Set(line.split(""));
+  return set;
+});
+
+const grouped = secondPart.reduce((a, c, i) => {
+  const index = Math.floor(i / 3);
+  if (!a[index]) {
+    a[index] = [];
+  }
+  a[index].push(c);
+  return a;
+}, []);
+
+// console.log(grouped);
+
+const groups = grouped.map((group) => {
+  const c1 = intersection(group[0], group[1]);
+  return intersection(c1, group[2]);
+});
+
+// console.log(groups);
+
+const finalSet = groups.reduce((a, c) => {
+  for (const elem of c) {
+    a.push(elem);
+  }
+  return a;
+}, []);
+
+// console.log(finalSet);
+
+// const finalSet = values.reduce((a, c) => {
+//   for (const elem of c) {
+//     a.push(elem);
+//   }
+//   return a;
+// }, []);
+
+const result = [];
+for (const elem of finalSet) {
+  result.push(lookUp.indexOf(elem) + 1);
+}
+
+const answer = result.reduce((a, c) => a + c);
 
 console.log(answer);
 
