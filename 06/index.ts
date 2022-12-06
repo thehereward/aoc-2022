@@ -1,4 +1,3 @@
-import _ from "lodash";
 import { readFile } from "../common";
 
 var data = readFile("input");
@@ -25,7 +24,5 @@ export function findMessage(input: string) {
   return findThing(input, 14);
 }
 
-console.log(findMarker(data[0]));
-console.log(findMessage(data[0]));
-
-export {};
+console.log(`Part 1: ${findMarker(data[0])}`);
+console.log(`Part 2: ${findMessage(data[0])}`);
