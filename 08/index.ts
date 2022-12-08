@@ -3,100 +3,76 @@ import { readFile } from "../common";
 
 var data = readFile("input");
 
-var wd: string[] = [];
-var dContents: any = {};
-var fileSizes: any = {};
-
-var fileRegex = /(\d+) (.+)/;
-
-function addToDir(item: string) {
-  if (!dContents[wd.join("/")]) {
-    dContents[wd.join("/")] = [];
-  }
-  dContents[wd.join("/")].push(item);
+class Tree {
+  height: number;
+  tallest_north: number;
+  tallest_east: number;
+  tallest_south: number;
+  tallest_west: number;
 }
 
-function setSize(fileName: string, item: number) {
-  fileSizes[wd.join("/") + "/" + fileName] = item;
-}
-
-data.forEach((line) => {
-  // console.log(line);
-  if (line.startsWith("$ cd ")) {
-    var dir = line.replace("$ cd ", "");
-    switch (dir) {
-      case "..":
-        wd.pop();
-        break;
-      case "/":
-        wd = ["/"];
-        break;
-      default:
-        wd.push(dir);
-      // dContents[wd.join("/")] = [];
-    }
-  } else {
-    if (line.startsWith("$ ls")) {
-      // ignore
-    } else {
-      if (line.startsWith("dir ")) {
-        var dirName = line.replace("dir ", "");
-        addToDir(dirName);
-      } else {
-        var match = line.match(fileRegex);
-        addToDir(match[2]);
-        setSize(match[2], parseInt(match[1]));
-      }
-    }
-  }
-});
-
-var dirSizes: any = {};
-
-var dirs = Object.keys(dContents);
-var fileNames = Object.keys(fileSizes);
-dirs.forEach((dir) => {
-  dirSizes[dir] = 0;
-  fileNames.forEach((fileName) => {
-    if (fileName.startsWith(dir)) {
-      dirSizes[dir] = dirSizes[dir] + fileSizes[fileName];
-    }
+var trees: Tree[][] = data.map((line) => {
+  return line.split("").map((char) => {
+    return {
+      height: parseInt(char),
+      tallest_north: -1,
+      tallest_east: -1,
+      tallest_south: -1,
+      tallest_west: -1,
+    };
   });
 });
 
-console.log(dContents);
-console.log(fileSizes);
-console.log(dirSizes);
+const yMax = trees.length - 1;
+const xMax = trees[0].length - 1;
 
-var answer = 0;
-dirs.forEach((dir) => {
-  var size = dirSizes[dir];
-  if (size <= 100000) {
-    answer = answer + size;
+for (var y = 1; y < yMax; y = y + 1) {
+  for (var x = 1; x < xMax; x = x + 1) {
+    trees[y][x] = {
+      ...trees[y][x],
+      tallest_north: Math.max(
+        trees[y - 1][x].tallest_north,
+        trees[y - 1][x].height
+      ),
+      tallest_west: Math.max(
+        trees[y][x - 1].tallest_west,
+        trees[y][x - 1].height
+      ),
+    };
+
+    trees[yMax - y][xMax - x] = {
+      ...trees[yMax - y][xMax - x],
+      tallest_south: Math.max(
+        trees[yMax - y + 1][xMax - x].tallest_south,
+        trees[yMax - y + 1][xMax - x].height
+      ),
+      tallest_east: Math.max(
+        trees[yMax - y][xMax - x + 1].tallest_east,
+        trees[yMax - y][xMax - x + 1].height
+      ),
+    };
   }
-});
+}
 
-// console.log(answer);
+function isVisible(tree: Tree): boolean {
+  return (
+    tree.height > tree.tallest_north ||
+    tree.height > tree.tallest_east ||
+    tree.height > tree.tallest_south ||
+    tree.height > tree.tallest_west
+  );
+}
 
-const totalSpace = 70000000;
-var used = dirSizes["/"];
-var remaining = totalSpace - used;
-const update = 30000000;
-var toFind = update - remaining; //528671
-console.log(toFind);
+var count = 0;
 
-var smallestDir = "";
-var smallestSize = used;
-
-dirs.forEach((dir) => {
-  var size = dirSizes[dir];
-  if (size >= toFind && size < smallestSize) {
-    smallestDir = dir;
-    smallestSize = size;
+for (var y = 0; y <= yMax; y = y + 1) {
+  for (var x = 0; x <= xMax; x = x + 1) {
+    if (isVisible(trees[y][x])) {
+      count = count + 1;
+    }
   }
-});
+}
 
-console.log(smallestDir);
-console.log(smallestSize);
+console.log(count);
 
 export {};
