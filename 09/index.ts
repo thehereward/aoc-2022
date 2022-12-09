@@ -3,137 +3,88 @@ import { readFile } from "../common";
 
 var data = readFile("input");
 
-class Tree {
-  height: number;
-  tallest_north: number;
-  tallest_east: number;
-  tallest_south: number;
-  tallest_west: number;
+var head = [0, 0];
+var tail = [0, 0];
+var tailHistory: number[][] = [];
+var headHistory: number[][] = [];
+
+function addToHeadHistory(head: number[]) {
+  var newHead = [...head];
+  headHistory.push(newHead);
 }
 
-var trees: Tree[][] = data.map((line) => {
-  return line.split("").map((char) => {
-    return {
-      height: parseInt(char),
-      tallest_north: -1,
-      tallest_east: -1,
-      tallest_south: -1,
-      tallest_west: -1,
-    };
-  });
+function addToTailHistory(tail: number[]) {
+  var newTail = [...tail];
+  tailHistory.push(newTail);
+}
+
+addToHeadHistory(head);
+addToTailHistory(tail);
+
+var instructions = data.flatMap((line) => {
+  var parts = line.split(" ");
+  var number = parseInt(parts[1]);
+  return Array.from(parts[0].repeat(number));
 });
 
-const yMax = trees.length - 1;
-const xMax = trees[0].length - 1;
+// console.log(instructions);
 
-// for (var y = 1; y < yMax; y = y + 1) {
-//   for (var x = 1; x < xMax; x = x + 1) {
-//     trees[y][x] = {
-//       ...trees[y][x],
-//       tallest_north: Math.max(
-//         trees[y - 1][x].tallest_north,
-//         trees[y - 1][x].height
-//       ),
-//       tallest_west: Math.max(
-//         trees[y][x - 1].tallest_west,
-//         trees[y][x - 1].height
-//       ),
-//     };
+function shouldMove() {
+  if (Math.abs(head[0] - tail[0]) >= 2) {
+    return true;
+  }
 
-//     trees[yMax - y][xMax - x] = {
-//       ...trees[yMax - y][xMax - x],
-//       tallest_south: Math.max(
-//         trees[yMax - y + 1][xMax - x].tallest_south,
-//         trees[yMax - y + 1][xMax - x].height
-//       ),
-//       tallest_east: Math.max(
-//         trees[yMax - y][xMax - x + 1].tallest_east,
-//         trees[yMax - y][xMax - x + 1].height
-//       ),
-//     };
-//   }
-// }
+  if (Math.abs(head[1] - tail[1]) >= 2) {
+    return true;
+  }
 
-function isVisible(tree: Tree): boolean {
-  return (
-    tree.height > tree.tallest_north ||
-    tree.height > tree.tallest_east ||
-    tree.height > tree.tallest_south ||
-    tree.height > tree.tallest_west
-  );
+  return false;
 }
 
-var count = 0;
+instructions.forEach((instruction) => {
+  switch (instruction) {
+    case "U":
+      head = [head[0], head[1] + 1];
+      break;
+    case "D":
+      head = [head[0], head[1] - 1];
+      break;
+    case "L":
+      head = [head[0] - 1, head[1]];
+      break;
+    case "R":
+      head = [head[0] + 1, head[1]];
+      break;
+  }
 
-// for (var y = 0; y <= yMax; y = y + 1) {
-//   for (var x = 0; x <= xMax; x = x + 1) {
-//     if (isVisible(trees[y][x])) {
-//       count = count + 1;
-//     }
-//   }
-// }
-
-for (var y = 1; y < yMax; y = y + 1) {
-  for (var x = 1; x < xMax; x = x + 1) {
-    var tree = trees[y][x];
-    for (var z = 1; z <= yMax - y; z = z + 1) {
-      var tree_down = trees[y + z][x];
-      if (tree_down.height >= tree.height) {
-        tree.tallest_south = z;
-        break;
+  if (shouldMove()) {
+    if (Math.abs(head[1] - tail[1]) > 1) {
+      if (head[1] > tail[1]) {
+        tail = [head[0], tail[1] + 1];
+      } else {
+        tail = [head[0], tail[1] - 1];
       }
-      tree.tallest_south = z;
-    }
-
-    for (var z = 1; z <= y; z = z + 1) {
-      var tree_up = trees[y - z][x];
-      if (tree_up.height >= tree.height) {
-        tree.tallest_north = z;
-        break;
+    } else {
+      if (head[0] > tail[0]) {
+        tail = [tail[0] + 1, head[1]];
+      } else {
+        tail = [tail[0] - 1, head[1]];
       }
-      tree.tallest_north = z;
-    }
-
-    for (var z = 1; z <= xMax - x; z = z + 1) {
-      var tree_right = trees[y][x + z];
-      if (tree_right.height >= tree.height) {
-        tree.tallest_east = z;
-        break;
-      }
-      tree.tallest_east = z;
-    }
-
-    for (var z = 1; z <= x; z = z + 1) {
-      var tree_left = trees[y][x - z];
-      if (tree_left.height >= tree.height) {
-        tree.tallest_west = z;
-        break;
-      }
-      tree.tallest_west = z;
     }
   }
-}
+  addToHeadHistory(head);
+  addToTailHistory(tail);
+});
 
-function getScore(tree: Tree) {
-  return (
-    tree.tallest_east *
-    tree.tallest_north *
-    tree.tallest_south *
-    tree.tallest_west
-  );
-}
+// for (var i = 0; i < headHistory.length; i = i + 1) {
+//   console.log(i);
+//   console.log(headHistory[i]);
+//   console.log(tailHistory[i]);
+// }
 
-var overallScore = 0;
+var tailSet = new Set(tailHistory.map((t) => `${t[0]}|${t[1]}`));
+console.log(tailSet.size);
 
-for (var y = 0; y <= yMax; y = y + 1) {
-  for (var x = 0; x <= xMax; x = x + 1) {
-    var score = getScore(trees[y][x]);
-    if (score > overallScore) {
-      overallScore = score;
-    }
-  }
-}
-
-console.log(overallScore);
-
+// console.log(headHistory)
+// console.log(tailHistory);
 export {};
