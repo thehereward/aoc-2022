@@ -1,26 +1,139 @@
 import each from "jest-each";
-import { findMarker, findMessage } from ".";
+import { getNewTail, shouldMove } from ".";
 
-describe("find message", () => {
+describe("get new tail - when no movement required", () => {
   each([
-    ["mjqjpqmgbljsphdztnvjfqwrcgsmlb", 19],
-    ["bvwbjplbgvbhsrlpgdmjqwftvncz", 23],
-    ["nppdvjthqldpwncqszvftbrmjlhg", 23],
-    ["nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", 29],
-    ["zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", 26],
+    [
+      [-1, -1],
+      [0, 0],
+    ],
+    [
+      [-1, 0],
+      [0, 0],
+    ],
+    [
+      [-1, -0],
+      [0, 0],
+    ],
+    [
+      [1, -1],
+      [0, 0],
+    ],
+    [
+      [1, 0],
+      [0, 0],
+    ],
+    [
+      [1, -0],
+      [0, 0],
+    ],
+    [
+      [0, -1],
+      [0, 0],
+    ],
+    [
+      [0, 0],
+      [0, 0],
+    ],
+    [
+      [0, 1],
+      [0, 0],
+    ],
   ]).test("for %s, returns %s", (input, expected) => {
-    expect(findMessage(input)).toBe(expected);
+    expect(getNewTail(input, [0, 0])).toStrictEqual(expected);
   });
 });
 
-describe("find marker", () => {
+describe("get new tail - when movement IS required", () => {
   each([
-    ["mjqjpqmgbljsphdztnvjfqwrcgsmlb", 7],
-    ["bvwbjplbgvbhsrlpgdmjqwftvncz", 5],
-    ["nppdvjthqldpwncqszvftbrmjlhg", 6],
-    ["nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", 10],
-    ["zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", 11],
+    [
+      [-2, -2],
+      [-1, -1],
+    ],
+    [
+      [-2, -1],
+      [-1, -1],
+    ],
+    [
+      [-2, 0],
+      [-1, 0],
+    ],
+    [
+      [-2, 1],
+      [-1, 1],
+    ],
+    [
+      [-2, 2],
+      [-1, 1],
+    ],
+    [
+      [-1, -2],
+      [-1, -1],
+    ],
+    [
+      [-1, 2],
+      [-1, 1],
+    ],
+    [
+      [0, -2],
+      [0, -1],
+    ],
+    [
+      [0, 2],
+      [0, 1],
+    ],
+    [
+      [1, -2],
+      [1, -1],
+    ],
+    [
+      [1, 2],
+      [1, 1],
+    ],
+    [
+      [2, -2],
+      [1, -1],
+    ],
+    [
+      [2, -1],
+      [1, -1],
+    ],
+    [
+      [2, -0],
+      [1, 0],
+    ],
+    [
+      [2, 1],
+      [1, 1],
+    ],
+    [
+      [2, 2],
+      [1, 1],
+    ],
   ]).test("for %s, returns %s", (input, expected) => {
-    expect(findMarker(input)).toBe(expected);
+    expect(getNewTail(input, [0, 0])).toStrictEqual(expected);
+  });
+});
+
+describe("get new tail - when movement IS required", () => {
+  each([
+    [[-2, -2]],
+    [[-2, -1]],
+    [[-2, 0]],
+    [[-2, 1]],
+    [[-2, 2]],
+    [[-1, -2]],
+    [[-1, 2]],
+    [[0, -2]],
+    [[0, 2]],
+    [[1, -2]],
+    [[1, 2]],
+    [[2, -2]],
+    [[2, -1]],
+    [[2, -0]],
+    [[2, 1]],
+    [[2, 2]],
+  ]).test("for %s, returns true", (input) => {
+    expect(shouldMove(input, [0, 0])).toBe(true);
   });
 });
