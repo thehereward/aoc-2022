@@ -11,16 +11,13 @@ class Node {
   height: number;
   visited: boolean;
   source?: Node;
-  onPath: boolean;
+  onPath?: boolean;
 }
 
 var elevations: Node[] = [];
 
 var startI: number;
 var startJ: number;
-
-var targetI: number;
-var targetJ: number;
 
 function getHeight(index: number) {
   return "abcdefghijklmnopqrstuvwxyz"[index];
@@ -39,22 +36,18 @@ function getElevation(string: string) {
 for (var i = 0; i < data.length; i++) {
   var line = data[i];
   for (var j = 0; j < line.length; j++) {
-    if (line[j] == "S") {
+    if (line[j] == "E") {
       startI = i;
       startJ = j;
-    }
-    if (line[j] == "E") {
-      targetI = i;
-      targetJ = j;
     }
     elevations.push({
       i,
       j,
       id: `${i}|${j}`,
-      weight: line[j] == "S" ? 0 : -1,
+      weight: line[j] == "E" ? 0 : -1,
       height: getElevation(line[j]),
       visited: false,
-      onPath: false,
+      //   onPath: false,
     });
   }
 }
@@ -71,8 +64,18 @@ function getNeighbouringIds(i: number, j: number) {
   return [`${i - 1}|${j}`, `${i + 1}|${j}`, `${i}|${j - 1}`, `${i}|${j + 1}`];
 }
 
-function canVisit(heightA: number, heightB: number) {
-  return heightB <= heightA + 1;
+// function canVisit(heightA: number, heightB: number) {
+//   return heightB <= heightA + 1;
+// }
+
+function canVisit(source: number, destination: number) {
+  if (destination >= source) {
+    return true;
+  }
+  if (source == destination + 1) {
+    return true;
+  }
+  return false;
 }
 
 function getNewWeight(weightA: number, weightB: number) {
@@ -86,7 +89,7 @@ function getNewWeight(weightA: number, weightB: number) {
 function updateWeight(source: Node, destination: Node) {
   if (destination.weight == -1 || destination.weight > source.weight + 1) {
     destination.weight = source.weight + 1;
-    destination.source = source;
+    // destination.source = source;
   }
 }
 
@@ -106,8 +109,7 @@ while (true) {
   var node = unvisitedNodes
     .filter((node) => !node.visited)
     .filter((node) => node.weight >= 0)
-    .sort(sortAscending)
-    .shift();
+    .sort(sortAscending)[0];
 
   if (!node) {
     break;
@@ -127,7 +129,7 @@ while (true) {
 
 // console.log(unvisitedNodes.filter((n) => !n.visited));
 console.log(nodes[`${startI}|${startJ}`]);
-console.log(nodes[`${targetI}|${targetJ}`]);
+// console.log(nodes[`${targetI}|${targetJ}`]);
 
 function getThing(node: Node) {
   if (!node.visited) {
@@ -143,13 +145,13 @@ function getWeightString(node: Node) {
   return (node.weight % 16).toString(16);
 }
 
-var nextNode = nodes[`${targetI}|${targetJ}`];
-var count = 0;
-while (nextNode != undefined) {
-  nextNode.onPath = true;
-  nextNode = nextNode.source;
-  count++;
-}
+// var nextNode = nodes[`${targetI}|${targetJ}`];
+// var count = 0;
+// while (nextNode != undefined) {
+//   nextNode.onPath = true;
+//   nextNode = nextNode.source;
+//   count++;
+// }
 
 function printMap(func: (node: Node) => string) {
   for (var i = 0; i < data.length; i++) {
@@ -166,6 +168,13 @@ function printMap(func: (node: Node) => string) {
 // printMap(getThing);
 // printMap(getWeightString);
 // console.log(count);
+
+console.log(
+  unvisitedNodes
+    .filter((n) => n.height == 0)
+    .filter((n) => n.visited)
+    .sort(sortAscending)
+);
 
 // 544 - wrong
 // 494 - wrong
