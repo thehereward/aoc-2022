@@ -53,33 +53,68 @@ export function comparePackets(
   }
 }
 
-var packets: any[][] = [];
+export function sortPackets(left: PacketPart, right: PacketPart): number {
+  const result = comparePackets(_.cloneDeep(left), _.cloneDeep(right));
+  if (result == undefined) {
+    return 0;
+  }
 
-var pair: any[] = [];
+  return result ? -1 : 1;
+}
+
+// var packets: any[][] = [];
+
+// var pair: any[] = [];
+// data.forEach((line) => {
+//   if (line.length == 0) {
+//     packets.push(_.cloneDeep(pair));
+//     pair = [];
+//   } else {
+//     pair.push(parseToPacket(line));
+//   }
+// });
+
+var packets2: PacketPart[] = [];
+// console.log(data);
+// console.log(typeof data);
+// data.forEach((line) => console.log(line));
 data.forEach((line) => {
   if (line.length == 0) {
-    packets.push(_.cloneDeep(pair));
-    pair = [];
-  } else {
-    pair.push(parseToPacket(line));
+    return;
   }
+  packets2.push(parseToPacket(line));
 });
 
-const passFail = packets.map((packet) => {
-  return comparePackets(packet[0], packet[1]);
-});
+const dividerA = [[2]];
+const dividerB = [[6]];
 
-const answer = passFail.reduce((a, c, i) => {
-  if (c == true) {
-    return a + (i + 1);
-  } else if (c == false) {
-    return a;
-  } else {
-    throw c;
-  }
-}, 0);
+packets2.push(dividerA);
+packets2.push(dividerB);
+// const passFail = packets.map((packet) => {
+//   return comparePackets(packet[0], packet[1]);
+// });
 
-console.log(answer);
+// const answer = passFail.reduce((a, c, i) => {
+//   if (c == true) {
+//     return a + (i + 1);
+//   } else if (c == false) {
+//     return a;
+//   } else {
+//     throw c;
+//   }
+// }, 0);
+
+// console.log(answer);
+
+packets2.sort((a, b) => sortPackets(a, b));
+
+console.log(packets2.indexOf(dividerA));
+console.log(packets2.indexOf(dividerB));
+
+const indexA = packets2.indexOf(dividerA) + 1;
+const indexB = packets2.indexOf(dividerB) + 1;
+
+console.log(indexA * indexB);
 
 // 4493 incorrect
 
