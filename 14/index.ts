@@ -55,6 +55,9 @@ const sandVectors = [
 ];
 
 function isBlocked(point: number[]) {
+  if (point[1] == maxDepth + 2) {
+    return true;
+  }
   const item = blockedPoints[pointToString(point)];
   return item != undefined;
 }
@@ -70,14 +73,14 @@ function getNewSand(sand: number[]) {
   return sand;
 }
 
-function fallingForever(point: number[]) {
-  return point[1] > maxDepth;
+function shouldStop(point: number[]) {
+  return _.isEqual(newSand, [500, 0]);
 }
 
-var isFallingForever = false;
+var isShouldStop = false;
 
 var sandCount = 0;
-while (!isFallingForever) {
+while (!isShouldStop) {
   var sand = [500, 0];
   sandCount++;
   var newSand = _.clone(sand);
@@ -88,14 +91,14 @@ while (!isFallingForever) {
     newSand = getNewSand(sand);
     isStopped = _.isEqual(sand, newSand);
     sand = newSand;
-    isFallingForever = fallingForever(newSand);
-    if (isFallingForever) {
+    isShouldStop = shouldStop(newSand);
+    if (isShouldStop) {
       break;
     }
   }
   blockedPoints[pointToString(newSand)] = "sand";
 }
 
-console.log(sandCount - 1);
+console.log(sandCount);
 
 export {};
