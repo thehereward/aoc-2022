@@ -116,43 +116,50 @@ var myLocation = startId;
 var maxPressure = 0;
 var count = 0;
 
-function setPressure(pressure: number) {
+var roomHistoryPressure: any[] = [];
+
+function setPressure(pressure: number, roomHistory: string[]) {
+  roomHistoryPressure.push({
+    id: roomHistory.join("|"),
+    pressure,
+  });
   maxPressure = Math.max(maxPressure, pressure);
   count++;
-  if (count % 1000 == 0) {
-    console.log(count);
-  }
+  // if (count % 1000 == 0) {
+  //   console.log(count);
+  // }
 }
 
 function recurse(
   currentRoom: Room,
   items: Room[],
   time: number,
-  currentPressure: number
+  currentPressure: number,
+  roomHistory: string[]
 ) {
   var newTime = time - 1;
-  if (newTime <= 0) {
-    setPressure(currentPressure);
-    return;
-  }
+  roomHistory.push(currentRoom.label);
   var pressure = currentRoom.flowRate * newTime;
   var newPressure = currentPressure + pressure;
-  if (items.length == 0) {
-    setPressure(newPressure);
-    return;
-  }
+  setPressure(newPressure, roomHistory);
 
   items.forEach((room) => {
     var newItems = items.filter((item) => item.label != room.label);
     var distance = distancesFrom[currentRoom.label][room.label];
     var myTime = newTime - distance;
-    recurse(room, newItems, myTime, newPressure);
+    if (myTime > 1) {
+      recurse(room, newItems, myTime, newPressure, _.clone(roomHistory));
+    }
   });
 }
 console.log(workingSet);
-recurse(roomObject["AA"], workingSet, 31, 0);
+recurse(roomObject["AA"], workingSet, 31, 0, []);
 
+console.log(roomHistoryPressure.filter((r) => r.pressure == maxPressure));
 console.log(maxPressure);
+
+roomHistoryPressure.sort((a, b) => b.pressure - a.pressure);
+console.log(roomHistoryPressure.slice(0, 10));
 
 const end = Date.now();
 console.log(`Time taken: ${end - start}ms`);
