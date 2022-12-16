@@ -77,42 +77,42 @@ while (roomsToGetDistancesFor.length > 0) {
   }
   distancesFrom[sourceRoom.label] = distances;
 }
-const toArrange = roomsToVisit
-  .sort((a, b) => b.flowRate - a.flowRate)
-  .filter((a) => a.flowRate > 0);
 
-const startId = "AA";
-var time = 30;
+// const startId = "AA";
+// var time = 30;
 
-function getTotalFlow(workingSet: Room[]) {
-  var opened: any = getEmptyDistance(roomObject);
-  var currentLocation = startId;
-  workingSet
-    .map((o) => o.label)
-    .forEach((label) => {
-      var distance = distancesFrom[currentLocation][label];
-      time = time - distance;
-      if (opened[label] == Infinity) {
-        time = time + 1;
-        opened[label] = time;
-      }
-      currentLocation = label;
-    });
+// function getTotalFlow(workingSet: Room[]) {
+//   var opened: any = getEmptyDistance(roomObject);
+//   var currentLocation = startId;
+//   workingSet
+//     .map((o) => o.label)
+//     .forEach((label) => {
+//       var distance = distancesFrom[currentLocation][label];
+//       time = time - distance;
+//       if (opened[label] == Infinity) {
+//         time = time + 1;
+//         opened[label] = time;
+//       }
+//       currentLocation = label;
+//     });
 
-  return workingSet.reduce((a, c) => {
-    const flow = c.flowRate;
-    const time = opened[c.label];
-    return a + flow * time;
-  }, 0);
-}
+//   return workingSet.reduce((a, c) => {
+//     const flow = c.flowRate;
+//     const time = opened[c.label];
+//     return a + flow * time;
+//   }, 0);
+// }
 
-var workingSet = _.cloneDeep(toArrange);
-// const result = getTotalFlow(workingSet);
-// console.log({ workingSet });
-// console.log(result);
+var workingSet = _.cloneDeep(roomsToVisit)
+  .filter((a) => a.flowRate > 0)
+  .sort((a, b) => b.flowRate - a.flowRate);
+// console.log(workingSet.length);
 
-var myTime = 30;
-var myLocation = startId;
+// workingSet.forEach((r) => {
+//   const distance = distancesFrom["AA"][r.label];
+//   console.log(`${r.label},${r.flowRate},${distance}`);
+// });
+
 var maxPressure = 0;
 var count = 0;
 
@@ -125,43 +125,58 @@ function setPressure(pressure: number, roomHistory: string[]) {
   });
   maxPressure = Math.max(maxPressure, pressure);
   count++;
-  // if (count % 1000 == 0) {
-  //   console.log(count);
-  // }
 }
 
 function recurse(
   currentRoom: Room,
   items: Room[],
   time: number,
-  currentPressure: number,
+  cumulativePressure: number,
   roomHistory: string[]
 ) {
-  var newTime = time - 1;
+  var timeRemaining = time - 1; // open current valve
   roomHistory.push(currentRoom.label);
-  var pressure = currentRoom.flowRate * newTime;
-  var newPressure = currentPressure + pressure;
+
+  var pressure = currentRoom.flowRate * timeRemaining;
+  var newPressure = cumulativePressure + pressure;
   setPressure(newPressure, roomHistory);
+
+  // if (roomHistory.length > 1) {
+  //   return;
+  // }
 
   items.forEach((room) => {
     var newItems = items.filter((item) => item.label != room.label);
     var distance = distancesFrom[currentRoom.label][room.label];
-    var myTime = newTime - distance;
-    if (myTime > 1) {
-      recurse(room, newItems, myTime, newPressure, _.clone(roomHistory));
+    var myTime = timeRemaining - distance;
+    if (myTime > 0) {
+      recurse(
+        _.clone(room),
+        _.cloneDeep(newItems),
+        myTime,
+        newPressure,
+        _.cloneDeep(roomHistory)
+      );
     }
   });
 }
-console.log(workingSet);
+
 recurse(roomObject["AA"], workingSet, 31, 0, []);
 
 console.log(roomHistoryPressure.filter((r) => r.pressure == maxPressure));
-console.log(maxPressure);
+console.log(`Max Pressure: ${maxPressure}`);
 
-roomHistoryPressure.sort((a, b) => b.pressure - a.pressure);
-console.log(roomHistoryPressure.slice(0, 10));
+// roomHistoryPressure.sort((a, b) => b.pressure - a.pressure);
+// console.log(roomHistoryPressure.slice(0, 10));
+
+// console.log({ count });
+// console.log(
+//   roomHistoryPressure.filter((r) => r.id.startsWith("AA|OT")).slice(0, 10)
+// );
 
 const end = Date.now();
 console.log(`Time taken: ${end - start}ms`);
+
+// 1574 -- too low
 
 export {};
