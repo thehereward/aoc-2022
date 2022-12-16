@@ -22,16 +22,13 @@ var lines: Datum[] = data.map((line) => {
   };
 });
 
-lines.forEach((line) => {
-  line.distance = distance(line.beacon, line.sensor);
-});
-
 function distance(a: number[], b: number[]) {
   return Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
 }
 
-//const row = 2000000;
-// const row = 10;
+lines.forEach((line) => {
+  line.distance = distance(line.beacon, line.sensor);
+});
 
 export function getHoizontalDistance(
   targetRow: number,
