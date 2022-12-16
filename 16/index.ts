@@ -14,7 +14,7 @@ class Room {
   tunnelsTo: string[];
 }
 
-var lines: Room[] = data.map((line) => {
+var rooms: Room[] = data.map((line) => {
   const match = line.match(regex);
   return {
     label: match[1],
@@ -23,45 +23,136 @@ var lines: Room[] = data.map((line) => {
   };
 });
 
-const rooms: any = {};
-lines.map((line) => {
-  rooms[line.label] = line;
+const roomObject: any = {};
+rooms.map((line) => {
+  roomObject[line.label] = line;
 });
 
+const roomsToVisit = rooms.filter((room) => room.flowRate > 0);
 const startRoom = "AA";
-console.log(rooms);
+var currentRoomId = startRoom;
+var startingRoom = roomObject[startRoom];
+roomsToVisit.unshift(startingRoom);
 
-var currentRoom = rooms[startRoom];
-var visited = new Set<string>();
-var path: string[] = [];
-path.push(startRoom);
-visited.add(startRoom);
-
-function searchDown(
-  visited: Set<string>,
-  path: string[],
-  currentRoom: Room
-): string[][] {
-  if (visited.size == lines.length) {
-    console.log(path);
-    return [path];
-  }
-  if (path.length > lines.length * 2) {
-    // We've looped
-    console.log(path);
-    return [path];
-  }
-  visited.add(currentRoom.label);
-  path.push(currentRoom.label);
-  return currentRoom.tunnelsTo.flatMap((tunnel) => {
-    return searchDown(_.clone(visited), _.clone(path), rooms[tunnel]);
-  });
+function getNeighbours(roomObject: any, room: Room): Room[] {
+  return room.tunnelsTo.map((id) => roomObject[id]);
 }
 
-var paths = searchDown(new Set<string>(), [], currentRoom);
-console.log(paths);
+const distancesFrom: any = {};
 
-function openValve(room: Room) {}
+function getEmptyDistance(roomObject: any): any {
+  const keys = Object.keys(roomObject);
+  const result: any = {};
+  keys.forEach((key) => (result[key] = Infinity));
+  return result;
+}
+
+const roomsToGetDistancesFor = _.cloneDeep(roomsToVisit);
+while (roomsToGetDistancesFor.length > 0) {
+  var sourceRoom = roomsToGetDistancesFor.shift();
+  var distances: any = getEmptyDistance(roomObject);
+  distances[sourceRoom.label] = 0;
+  var visited: string[] = [];
+
+  var currentRoom = sourceRoom;
+
+  while (currentRoom != undefined) {
+    var currentDistance = distances[currentRoom.label];
+    const neighbours = getNeighbours(roomObject, currentRoom);
+    const unvisitedNeighbours = neighbours.filter((room) =>
+      visited.every((id) => id != room.label)
+    );
+    unvisitedNeighbours.forEach((room) => {
+      var previousDistance = distances[room.label];
+      distances[room.label] = Math.min(currentDistance + 1, previousDistance);
+    });
+    visited.push(currentRoom.label);
+    var currentRoomId = Object.keys(distances).filter(
+      (key) => distances[key] < Infinity && visited.every((id) => id != key)
+    )[0];
+    if (!currentRoomId) {
+      break;
+    }
+    currentRoom = roomObject[currentRoomId];
+  }
+  distancesFrom[sourceRoom.label] = distances;
+}
+const toArrange = roomsToVisit
+  .sort((a, b) => b.flowRate - a.flowRate)
+  .filter((a) => a.flowRate > 0);
+
+const startId = "AA";
+var time = 30;
+
+function getTotalFlow(workingSet: Room[]) {
+  var opened: any = getEmptyDistance(roomObject);
+  var currentLocation = startId;
+  workingSet
+    .map((o) => o.label)
+    .forEach((label) => {
+      var distance = distancesFrom[currentLocation][label];
+      time = time - distance;
+      if (opened[label] == Infinity) {
+        time = time + 1;
+        opened[label] = time;
+      }
+      currentLocation = label;
+    });
+
+  return workingSet.reduce((a, c) => {
+    const flow = c.flowRate;
+    const time = opened[c.label];
+    return a + flow * time;
+  }, 0);
+}
+
+var workingSet = _.cloneDeep(toArrange);
+// const result = getTotalFlow(workingSet);
+// console.log({ workingSet });
+// console.log(result);
+
+var myTime = 30;
+var myLocation = startId;
+var maxPressure = 0;
+var count = 0;
+
+function setPressure(pressure: number) {
+  maxPressure = Math.max(maxPressure, pressure);
+  count++;
+  if (count % 1000 == 0) {
+    console.log(count);
+  }
+}
+
+function recurse(
+  currentRoom: Room,
+  items: Room[],
+  time: number,
+  currentPressure: number
+) {
+  var newTime = time - 1;
+  if (newTime <= 0) {
+    setPressure(currentPressure);
+    return;
+  }
+  var pressure = currentRoom.flowRate * newTime;
+  var newPressure = currentPressure + pressure;
+  if (items.length == 0) {
+    setPressure(newPressure);
+    return;
+  }
+
+  items.forEach((room) => {
+    var newItems = items.filter((item) => item.label != room.label);
+    var distance = distancesFrom[currentRoom.label][room.label];
+    var myTime = newTime - distance;
+    recurse(room, newItems, myTime, newPressure);
+  });
+}
+console.log(workingSet);
+recurse(roomObject["AA"], workingSet, 31, 0);
+
+console.log(maxPressure);
 
 const end = Date.now();
 console.log(`Time taken: ${end - start}ms`);
