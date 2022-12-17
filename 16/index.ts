@@ -14,6 +14,11 @@ class Room {
   tunnelsTo: string[];
 }
 
+class RoomToVisit extends Room {
+  visited: boolean;
+  weight: number;
+}
+
 var rooms: Room[] = data.map((line) => {
   const match = line.match(regex);
   return {
@@ -28,54 +33,55 @@ rooms.map((line) => {
   roomObject[line.label] = line;
 });
 
-const roomsToVisit = rooms.filter((room) => room.flowRate > 0);
+const roomsToGetDistancesFor = rooms.filter((room) => room.flowRate > 0);
 const startRoom = "AA";
 var currentRoomId = startRoom;
 var startingRoom = roomObject[startRoom];
-roomsToVisit.unshift(startingRoom);
+roomsToGetDistancesFor.unshift(startingRoom);
 
-function getNeighbours(roomObject: any, room: Room): Room[] {
-  return room.tunnelsTo.map((id) => roomObject[id]);
+function getNeighbours(rooms: RoomToVisit[], room: Room): RoomToVisit[] {
+  return rooms.filter((r) => room.tunnelsTo.some((id) => id == r.label));
 }
 
 const distancesFrom: any = {};
 
-function getEmptyDistance(roomObject: any): any {
-  const keys = Object.keys(roomObject);
-  const result: any = {};
-  keys.forEach((key) => (result[key] = Infinity));
-  return result;
+function getEmptyDistance(): RoomToVisit[] {
+  return _.cloneDeep(rooms).map((room) => {
+    return {
+      ...room,
+      visited: false,
+      weight: room.label == "AA" ? 0 : Infinity,
+    };
+  });
 }
 
-const roomsToGetDistancesFor = _.cloneDeep(roomsToVisit);
-while (roomsToGetDistancesFor.length > 0) {
-  var sourceRoom = roomsToGetDistancesFor.shift();
-  var distances: any = getEmptyDistance(roomObject);
-  distances[sourceRoom.label] = 0;
-  var visited: string[] = [];
+const roomIds: string[] = roomsToGetDistancesFor.map((room) => room.label);
+
+while (roomIds.length > 0) {
+  var sourceRoomId = roomIds.shift();
+  var roomsToVisit: RoomToVisit[] = getEmptyDistance();
+  var sourceRoom = roomsToVisit.find((room) => room.label == sourceRoomId);
+  sourceRoom.weight = 0;
 
   var currentRoom = sourceRoom;
 
   while (currentRoom != undefined) {
-    var currentDistance = distances[currentRoom.label];
-    const neighbours = getNeighbours(roomObject, currentRoom);
-    const unvisitedNeighbours = neighbours.filter((room) =>
-      visited.every((id) => id != room.label)
-    );
+    // console.log(currentRoom);
+    var currentDistance = currentRoom.weight;
+    const neighbours = getNeighbours(roomsToVisit, currentRoom);
+    const unvisitedNeighbours = neighbours.filter((room) => !room.visited);
     unvisitedNeighbours.forEach((room) => {
-      var previousDistance = distances[room.label];
-      distances[room.label] = Math.min(currentDistance + 1, previousDistance);
+      room.weight = Math.min(currentDistance + 1, room.weight);
     });
-    visited.push(currentRoom.label);
-    var currentRoomId = Object.keys(distances).filter(
-      (key) => distances[key] < Infinity && visited.every((id) => id != key)
-    )[0];
-    if (!currentRoomId) {
-      break;
-    }
-    currentRoom = roomObject[currentRoomId];
+    currentRoom.visited = true;
+    currentRoom = roomsToVisit
+      .filter((room) => !room.visited)
+      .sort((a, b) => a.weight - b.weight)[0];
   }
-  distancesFrom[sourceRoom.label] = distances;
+  distancesFrom[sourceRoomId] = roomsToVisit.reduce((a: any, c) => {
+    a[c.label] = c.weight;
+    return a;
+  }, {});
 }
 
 // const startId = "AA";
@@ -103,7 +109,7 @@ while (roomsToGetDistancesFor.length > 0) {
 //   }, 0);
 // }
 
-var workingSet = _.cloneDeep(roomsToVisit)
+var workingSet = _.cloneDeep(roomsToGetDistancesFor)
   .filter((a) => a.flowRate > 0)
   .sort((a, b) => b.flowRate - a.flowRate);
 // console.log(workingSet.length);
@@ -178,5 +184,6 @@ const end = Date.now();
 console.log(`Time taken: ${end - start}ms`);
 
 // 1574 -- too low
+// 2029 -- too high
 
 export {};
