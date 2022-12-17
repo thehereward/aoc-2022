@@ -211,28 +211,23 @@ class PossiblePair {
 }
 
 const possiblePairs: PossiblePair[] = [];
-
+var heighestPressure: number = 0;
 for (var i = 0; i < paths.length - 1; i++) {
   for (var j = i + 1; j < paths.length; j++) {
     var pathA = paths[i];
     var pathB = paths[j];
-    if (areCompatible(pathA, pathB)) {
-      possiblePairs.push({ pathA, pathB });
+    var pressure = pathA.pressure + pathB.pressure;
+    if (pressure > heighestPressure) {
+      if (areCompatible(pathA, pathB)) {
+        possiblePairs.push({ pathA, pathB });
+        heighestPressure = pressure;
+      }
     }
   }
 }
 
 console.log(paths.length);
 console.log(possiblePairs.length);
-var heighestPair: PossiblePair;
-var heighestPressure: number = 0;
-possiblePairs.forEach((pairs) => {
-  const pressure = pairs.pathA.pressure + pairs.pathB.pressure;
-  if (pressure > heighestPressure) {
-    heighestPair = pairs;
-    heighestPressure = pressure;
-  }
-});
 console.log(heighestPressure);
 
 // console.log(roomHistoryPressure.filter((r) => r.pressure == maxPressure));
