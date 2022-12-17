@@ -35,7 +35,6 @@ rooms.map((line) => {
 
 const roomsToGetDistancesFor = rooms.filter((room) => room.flowRate > 0);
 const startRoom = "AA";
-var currentRoomId = startRoom;
 var startingRoom = roomObject[startRoom];
 roomsToGetDistancesFor.unshift(startingRoom);
 
@@ -50,7 +49,7 @@ function getEmptyDistance(): RoomToVisit[] {
     return {
       ...room,
       visited: false,
-      weight: room.label == "AA" ? 0 : Infinity,
+      weight: Infinity,
     };
   });
 }
@@ -66,7 +65,6 @@ while (roomIds.length > 0) {
   var currentRoom = sourceRoom;
 
   while (currentRoom != undefined) {
-    // console.log(currentRoom);
     var currentDistance = currentRoom.weight;
     const neighbours = getNeighbours(roomsToVisit, currentRoom);
     const unvisitedNeighbours = neighbours.filter((room) => !room.visited);
@@ -83,6 +81,9 @@ while (roomIds.length > 0) {
     return a;
   }, {});
 }
+
+// console.log(distancesFrom);
+// process.exit();
 
 // const startId = "AA";
 // var time = 30;
@@ -155,7 +156,7 @@ function recurse(
     var newItems = items.filter((item) => item.label != room.label);
     var distance = distancesFrom[currentRoom.label][room.label];
     var myTime = timeRemaining - distance;
-    if (myTime > 0) {
+    if (myTime > 1) {
       recurse(
         _.clone(room),
         _.cloneDeep(newItems),
