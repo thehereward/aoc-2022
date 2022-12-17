@@ -1,13 +1,12 @@
 import _ from "lodash";
-import { readFile } from "../common";
+import { readFile, getTimeLogger } from "../common";
 
-const start = Date.now();
+const logTime = getTimeLogger();
 
 // 0, 0 is the bottom left
 
-// const numberOfRocks = 1000000000000;
-// const numberOfRocks = 1981090;
-const numberOfRocks = 2022;
+const numberOfRocks = 1000000000000;
+// const numberOfRocks = 2022;
 
 var matchFound = false;
 
@@ -282,10 +281,8 @@ function findPath(left: number, right: number) {
   while (true) {
     var node = unvisitedNodes
       .filter((node) => !node.visited)
-      // .filter((node) => node.distance != Infinity)
       .sort((a, b) => a.distance - b.distance)[0];
 
-    // console.log(node);
     if (!node) {
       break;
     }
@@ -300,8 +297,6 @@ function findPath(left: number, right: number) {
       .forEach((neighbour) => updateWeight(node, neighbour));
 
     node.visited = true;
-    //   console.log(unvisitedNodes.filter((node) => node.weight >= 0));
-    //   break;
   }
 
   var previous = unvisitedNodes.filter(
@@ -328,23 +323,8 @@ var previousTops: number[] = [];
 var previousIterations: number[] = [];
 var previousInstructionCounts: number[] = [];
 
-function getLowestPointOfPath() {
-  const left = getHighestLeft();
-  const right = getHighestRight();
-
-  if (Math.min(left, right) == -Infinity) {
-    return currentFloor;
-  }
-
-  const path = findPath(left, right);
-
-  var lowestPoint = path.reduce((a, c) => {
-    return c.coords.y < a ? c.coords.y : a;
-  }, Infinity);
-
-  currentFloor = Math.max(lowestPoint, currentFloor);
-  return currentFloor;
-}
+var bailAt = numberOfRocks;
+var iterativeHeighToAdd = 0;
 
 function lookForPatterns() {
   const left = getHighestLeft();
@@ -362,7 +342,6 @@ function lookForPatterns() {
 
   currentFloor = Math.max(lowestPoint, currentFloor);
 
-  // return currentFloor;
   const normalised = _.cloneDeep(path);
   normalised.forEach(
     (point) => (point.coords.y = point.coords.y - currentFloor)
@@ -372,70 +351,41 @@ function lookForPatterns() {
     .map((point) => {
       return { x: point.x, y: point.y - currentFloor };
     });
+
   if (previousPaths.some((p) => _.isEqual(p, normalised))) {
     var index = previousPaths.findIndex((p) => _.isEqual(p, normalised));
     var sameRocks = previousRocks[index];
     if (_.isEqual(sameRocks, normalisedRocks)) {
-      const previousTop = previousTops[index];
-      const previousRockCount = previousIterations[index];
       const previousInstructionCount = previousInstructionCounts[index];
-      console.log(
-        `found a match at ${index} | ` +
-          `previousTop: ${previousTop} | ` +
-          `currentTop: ${currentTop} | ` +
-          `previousRockCount: ${previousRockCount} | ` +
-          `currentRockCount: ${rockCount}`
-      );
 
-      var numberOfRocksPerIteration = rockCount - previousRockCount;
-      console.log({ numberOfRocksPerIteration });
-      var heightIncreasePerIteration = currentTop - previousTop;
-      console.log({ heightIncreasePerIteration });
-      var numberOfIterations = Math.floor(
-        (numberOfRocks - previousRockCount) / numberOfRocksPerIteration
-      );
-      console.log({ numberOfIterations });
+      if (previousInstructionCount == instructionCount % instructions.length) {
+        const previousTop = previousTops[index];
+        const previousRockCount = previousIterations[index];
+        console.log(
+          `found a match at ${index} | ` +
+            `previousTop: ${previousTop} | ` +
+            `currentTop: ${currentTop} | ` +
+            `previousRockCount: ${previousRockCount} | ` +
+            `currentRockCount: ${rockCount}`
+        );
 
-      console.log();
-
-      var heightFromAllIterations =
-        numberOfIterations * heightIncreasePerIteration;
-      console.log({ heightFromAllIterations });
-
-      console.log({ topBeforeIteration: previousTop });
-      currentTop = previousTop + heightFromAllIterations;
-      console.log({ topAfterIteration: currentTop });
-
-      console.log();
-
-      var rocksCoveredByIteration =
-        numberOfIterations * numberOfRocksPerIteration;
-      console.log({ rocksCoveredByIteration });
-      console.log({ rocksBeforeIterations: previousRockCount });
-      var remainingRocks =
-        numberOfRocks - previousRockCount - rocksCoveredByIteration;
-      console.log({ remainingRocks });
-
-      rockCount = numberOfRocks - remainingRocks;
-      console.log({ newRockCount: rockCount });
-
-      console.log();
-
-      console.log({ currentFloor });
-      const floorAfterIteration = currentTop - heightIncreasePerIteration;
-      console.log({ floorAfterIteration });
-
-      instructionCount = previousInstructionCount + rocksCoveredByIteration;
-      settledRocks = moveRock(_.clone(settledRocks), {
-        x: 0,
-        y: heightFromAllIterations - heightIncreasePerIteration,
-      });
-      matchFound = true;
-
-      // console.log(rockCount);
-      // console.log(currentTop);
-      // process.exit();
-      return floorAfterIteration;
+        var numberOfRocksPerIteration = rockCount - previousRockCount;
+        var heightIncreasePerIteration = currentTop - previousTop;
+        var numberOfIterations = Math.floor(
+          (numberOfRocks - previousRockCount) / numberOfRocksPerIteration
+        );
+        var heightFromAllIterations =
+          numberOfIterations * heightIncreasePerIteration;
+        iterativeHeighToAdd =
+          heightFromAllIterations - heightIncreasePerIteration;
+        var rocksCoveredByIteration =
+          numberOfIterations * numberOfRocksPerIteration;
+        var remainingRocks =
+          numberOfRocks - previousRockCount - rocksCoveredByIteration;
+        bailAt = rockCount + remainingRocks;
+        matchFound = true;
+        return currentFloor;
+      }
     }
   }
 
@@ -443,104 +393,50 @@ function lookForPatterns() {
   previousRocks.push(normalisedRocks);
   previousTops.push(currentTop);
   previousIterations.push(rockCount);
-  previousInstructionCounts.push(instructionCount);
-  // console.log(normalised.map((p) => p.coords));
+  previousInstructionCounts.push(instructionCount % instructions.length);
 
   return currentFloor;
 }
 
-// number of iterations = 714,285,714
+function logState(
+  rockCount: number,
+  currentFloor: number,
+  settledRocks: Coords[],
+  currentTop: number
+) {
+  logTime(
+    `Iteration: ${rockCount}. CurrentFloor: ${currentFloor}. Rocks: ${settledRocks.length}. Current Top: ${currentTop}`
+  );
+}
 
-// console.log(instructions.length);
-
-// while (rockCount < 1000000000000) {
-// while (rockCount < 2022) {
-while (rockCount < numberOfRocks) {
+while (rockCount < bailAt) {
   var rock = getNewRock(getStartLocation());
-  // printScene(rock);
   printCheck(rock);
   rockCount++;
 
   var moved = true;
   while (moved) {
     rock = moveHorizontal(rock);
-    // printCheck(rock);
     var result = moveDown(rock);
     rock = result.rock;
-    // printCheck(rock);
     moved = result.moved;
   }
-  // if (matchFound) {
-  //   console.log({ rock });
-  //   // console.log({ settledRocks });
-  //   printScene(rock);
-  //   // process.exit();
-  // }
   settledRocks.push(...rock);
   currentTop = settledRocks.reduce((a, c) => {
     return c.y > a ? c.y : a;
   }, -Infinity);
 
-  // matchFound = true;
-  if (true) {
-    console.log(
-      `Time: ${
-        Date.now() - start
-      }ms | Iteration: ${rockCount}. CurrentFloor: ${currentFloor}. Rocks: ${
-        settledRocks.length
-      }. Current Top: ${currentTop}`
-    );
+  if (matchFound) {
+    logState(rockCount, currentFloor, settledRocks, currentTop);
   }
 
-  // if (rockCount % 1000 == 0) {
-  //   currentFloor = getLowestPointOfPath();
-  //   settledRocks = settledRocks.filter((rock) => rock.y > currentFloor);
-  //   console.log(
-  //     `Time: ${
-  //       Date.now() - start
-  //     }ms | Iteration: ${rockCount}. CurrentFloor: ${currentFloor}. Rocks: ${
-  //       settledRocks.length
-  //     }`
-  //   );
-  // }
-  // if (rockCount % (instructions.length * rocks.length) == 0) {
   if (!matchFound && rockCount % 5 == 0) {
-    // console.log(`Looking for matches at ${rockCount}`);
     currentFloor = lookForPatterns();
     settledRocks = settledRocks.filter((rock) => rock.y >= currentFloor);
-    // console.log({ currentTop });
-    // console.log(
-    //   `Time: ${
-    //     Date.now() - start
-    //   }ms | Iteration: ${rockCount}. CurrentFloor: ${currentFloor}. Rocks: ${
-    //     settledRocks.length
-    //   }`
-    // );
   }
-  // console.log("Rock stopped");
 }
 
-console.log(currentTop);
+console.log(currentTop + iterativeHeighToAdd);
 
-const end = Date.now();
-console.log(`Time taken: ${end - start}ms`);
-
+logTime();
 export {};
-
-// 1514285714288 -- too low
-
-// Part 2
-// repeated height: 1542975515631
-// remaining iterations: 1981090
-
-// Time: 1873008ms | Iteration: 3379000. CurrentFloor: 5213800. Rocks: 32
-// Time: 1873548ms | Iteration: 3380000. CurrentFloor: 5215313. Rocks: 44
-// Looking for matches at 3380485
-// found a match at 4 | previousTop: 389338 | currentTop: 5216099 | previousIterations: 252275 | currentIterations: 3380485
-// { repeatedHeight: 1542975515631 }
-// { remainingIterations: 1981090 }
-
-// extra height: 3056732
-
-// Part 1 1542978572363 too high
-// Part 2 1568749999981 incorrect

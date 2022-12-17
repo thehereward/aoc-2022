@@ -10,3 +10,16 @@ export function readFile(filename: string): string[] {
     throw err;
   }
 }
+
+export function getTimeLogger(): (logMessage?: string) => void {
+  const start = Date.now();
+  return (logMessage?: string) => {
+    const end = Date.now();
+    const time = end - start;
+    if (logMessage) {
+      console.log(`${time}ms | ${logMessage} `);
+    } else {
+      console.log(`Time taken: ${time}ms`);
+    }
+  };
+}
