@@ -2,6 +2,7 @@ import _ from "lodash";
 import { readFile } from "../common";
 
 const start = Date.now();
+const TIME = 26;
 
 var data = readFile("input");
 
@@ -123,9 +124,14 @@ var workingSet = _.cloneDeep(roomsToGetDistancesFor)
 var maxPressure = 0;
 var count = 0;
 
-var roomHistoryPressure: any[] = [];
+class RoomHistory {
+  id: string;
+  pressure: number;
+}
 
-function setPressure(pressure: number, roomHistory: string[]) {
+var roomHistoryPressure: RoomHistory[] = [];
+
+function setPressure(forWhom: number, pressure: number, roomHistory: string[]) {
   roomHistoryPressure.push({
     id: roomHistory.join("|"),
     pressure,
@@ -141,12 +147,13 @@ function recurse(
   cumulativePressure: number,
   roomHistory: string[]
 ) {
+  const forWhom = 0;
   var timeRemaining = time - 1; // open current valve
   roomHistory.push(currentRoom.label);
 
   var pressure = currentRoom.flowRate * timeRemaining;
   var newPressure = cumulativePressure + pressure;
-  setPressure(newPressure, roomHistory);
+  setPressure(forWhom, newPressure, roomHistory);
 
   // if (roomHistory.length > 1) {
   //   return;
@@ -168,13 +175,73 @@ function recurse(
   });
 }
 
-recurse(roomObject["AA"], workingSet, 31, 0, []);
+recurse(roomObject["AA"], workingSet, TIME + 1, 0, []);
 
-console.log(roomHistoryPressure.filter((r) => r.pressure == maxPressure));
-console.log(`Max Pressure: ${maxPressure}`);
+class PathRoom {
+  rooms: Set<string>;
+  pressure: number;
+}
 
-// roomHistoryPressure.sort((a, b) => b.pressure - a.pressure);
+function intersection<T>(setA: Set<T>, setB: Set<T>) {
+  const _intersection = new Set<T>();
+  for (const elem of setB) {
+    if (setA.has(elem)) {
+      _intersection.add(elem);
+    }
+  }
+  return _intersection;
+}
+
+var paths: PathRoom[] = roomHistoryPressure.map((room) => {
+  return {
+    rooms: new Set(room.id.split("|").filter((id) => id != "AA")),
+    pressure: room.pressure,
+  };
+});
+
+paths.shift();
+
+function areCompatible(pathA: PathRoom, pathB: PathRoom) {
+  return intersection(pathA.rooms, pathB.rooms).size == 0;
+}
+
+class PossiblePair {
+  pathA: PathRoom;
+  pathB: PathRoom;
+}
+
+const possiblePairs: PossiblePair[] = [];
+
+for (var i = 0; i < paths.length - 1; i++) {
+  for (var j = i + 1; j < paths.length; j++) {
+    var pathA = paths[i];
+    var pathB = paths[j];
+    if (areCompatible(pathA, pathB)) {
+      possiblePairs.push({ pathA, pathB });
+    }
+  }
+}
+
+console.log(paths.length);
+console.log(possiblePairs.length);
+var heighestPair: PossiblePair;
+var heighestPressure: number = 0;
+possiblePairs.forEach((pairs) => {
+  const pressure = pairs.pathA.pressure + pairs.pathB.pressure;
+  if (pressure > heighestPressure) {
+    heighestPair = pairs;
+    heighestPressure = pressure;
+  }
+});
+console.log(heighestPressure);
+
+// console.log(roomHistoryPressure.filter((r) => r.pressure == maxPressure));
+// console.log(`Max Pressure: ${maxPressure}`);
+
+// roomHistoryPressure.sort((a, b) => b.pressure - a.pressure).reverse();
 // console.log(roomHistoryPressure.slice(0, 10));
+
+// console.log(roomHistoryPressure.length);
 
 // console.log({ count });
 // console.log(
