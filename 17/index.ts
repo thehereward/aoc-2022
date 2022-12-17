@@ -1,13 +1,13 @@
-import _, { clone, union } from "lodash";
+import _ from "lodash";
 import { readFile } from "../common";
 
 const start = Date.now();
 
 // 0, 0 is the bottom left
 
-const numberOfRocks = 1000000000000;
+// const numberOfRocks = 1000000000000;
 // const numberOfRocks = 1981090;
-// const numberOfRocks = 2022;
+const numberOfRocks = 2022;
 
 var matchFound = false;
 
@@ -131,8 +131,6 @@ function getNextInstruction(): string {
 var data = readFile("input");
 const instructions = data.flatMap((line) => line.split(""));
 
-// console.log(instructions);
-
 var currentTop = 0;
 function getStartLocation(): Coords {
   return {
@@ -219,22 +217,6 @@ function printCheck(rock: Rock) {
       printScene(rock);
     }
   }
-}
-
-function getLowestLeft() {
-  return settledRocks
-    .filter((r) => r.x == leftWall + 1)
-    .reduce((a, c) => {
-      return c.y < a ? c.y : a;
-    }, Infinity);
-}
-
-function getLowestRight() {
-  return settledRocks
-    .filter((r) => r.x == rightWall - 1)
-    .reduce((a, c) => {
-      return c.y < a ? c.y : a;
-    }, Infinity);
 }
 
 function getHighestLeft() {
@@ -344,7 +326,7 @@ var previousPaths: WeightedCord[][] = [];
 var previousRocks: Coords[][] = [];
 var previousTops: number[] = [];
 var previousIterations: number[] = [];
-var previousInstructionCount: number[] = [];
+var previousInstructionCounts: number[] = [];
 
 function getLowestPointOfPath() {
   const left = getHighestLeft();
@@ -380,12 +362,13 @@ function lookForPatterns() {
 
   currentFloor = Math.max(lowestPoint, currentFloor);
 
+  // return currentFloor;
   const normalised = _.cloneDeep(path);
   normalised.forEach(
     (point) => (point.coords.y = point.coords.y - currentFloor)
   );
   const normalisedRocks = _.clone(settledRocks)
-    .filter((r) => r.y > currentFloor)
+    .filter((r) => r.y >= currentFloor)
     .map((point) => {
       return { x: point.x, y: point.y - currentFloor };
     });
@@ -395,6 +378,7 @@ function lookForPatterns() {
     if (_.isEqual(sameRocks, normalisedRocks)) {
       const previousTop = previousTops[index];
       const previousRockCount = previousIterations[index];
+      const previousInstructionCount = previousInstructionCounts[index];
       console.log(
         `found a match at ${index} | ` +
           `previousTop: ${previousTop} | ` +
@@ -402,6 +386,7 @@ function lookForPatterns() {
           `previousRockCount: ${previousRockCount} | ` +
           `currentRockCount: ${rockCount}`
       );
+
       var numberOfRocksPerIteration = rockCount - previousRockCount;
       console.log({ numberOfRocksPerIteration });
       var heightIncreasePerIteration = currentTop - previousTop;
@@ -440,9 +425,8 @@ function lookForPatterns() {
       const floorAfterIteration = currentTop - heightIncreasePerIteration;
       console.log({ floorAfterIteration });
 
-      instructionCount =
-        previousInstructionCount[index] + rocksCoveredByIteration;
-      settledRocks = moveRock(settledRocks, {
+      instructionCount = previousInstructionCount + rocksCoveredByIteration;
+      settledRocks = moveRock(_.clone(settledRocks), {
         x: 0,
         y: heightFromAllIterations - heightIncreasePerIteration,
       });
@@ -459,7 +443,7 @@ function lookForPatterns() {
   previousRocks.push(normalisedRocks);
   previousTops.push(currentTop);
   previousIterations.push(rockCount);
-  previousInstructionCount.push(instructionCount);
+  previousInstructionCounts.push(instructionCount);
   // console.log(normalised.map((p) => p.coords));
 
   return currentFloor;
@@ -486,18 +470,19 @@ while (rockCount < numberOfRocks) {
     // printCheck(rock);
     moved = result.moved;
   }
-  if (matchFound) {
-    console.log({ rock });
-    // console.log({ settledRocks });
-    printScene(rock);
-    // process.exit();
-  }
+  // if (matchFound) {
+  //   console.log({ rock });
+  //   // console.log({ settledRocks });
+  //   printScene(rock);
+  //   // process.exit();
+  // }
   settledRocks.push(...rock);
   currentTop = settledRocks.reduce((a, c) => {
     return c.y > a ? c.y : a;
   }, -Infinity);
 
-  if (matchFound) {
+  // matchFound = true;
+  if (true) {
     console.log(
       `Time: ${
         Date.now() - start
@@ -557,4 +542,5 @@ export {};
 
 // extra height: 3056732
 
-// 1542978572363 too high
+// Part 1 1542978572363 too high
+// Part 2 1568749999981 incorrect
