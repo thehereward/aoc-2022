@@ -1,19 +1,16 @@
 import each from "jest-each";
-import { getMax } from ".";
+import { isAdjacent } from ".";
 
-describe("getMax", () => {
+describe("isAdjacent when cubes are adjacent", () => {
   each([
-    [[{ x: 0, y: 0 }], 0],
-    [[{ x: 1, y: 0 }], 1],
-    [[{ x: 3, y: 0 }], 3],
-    [
-      [
-        { x: 3, y: 0 },
-        { x: 2, y: 0 },
-      ],
-      3,
-    ],
-  ]).test("for %s , returns %s", (rock, expected) => {
-    expect(getMax(rock)).toStrictEqual(expected);
+    [[0, 0, 0], [0, 0, 1], true],
+    [[0, 0, 0], [0, 1, 0], true],
+    [[0, 0, 0], [1, 0, 0], true],
+    [[0, 0, 0], [1, 1, 0], false],
+    [[0, 0, 0], [1, 0, 1], false],
+    [[0, 0, 0], [0, 1, 1], false],
+    [[0, 0, 0], [1, 1, 1], false],
+  ]).test("for (%s) and ($s) returns %s", (cubeA, cubeB, expected) => {
+    expect(isAdjacent(cubeA, cubeB)).toStrictEqual(expected);
   });
 });
