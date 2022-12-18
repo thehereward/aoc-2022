@@ -1,15 +1,5 @@
-import _, { initial } from "lodash";
+import _ from "lodash";
 import { readFile, getTimeLogger } from "../common";
-
-function intersection<T>(setA: Set<T>, setB: Set<T>) {
-  const _intersection = new Set<T>();
-  for (const elem of setB) {
-    if (setA.has(elem)) {
-      _intersection.add(elem);
-    }
-  }
-  return _intersection;
-}
 
 const logTime = getTimeLogger();
 
@@ -75,9 +65,6 @@ function isInBounds(cube: number[]): boolean {
   }, true);
 }
 
-var start = [bounds[0][0], bounds[1][0], bounds[2][0]];
-var end = [bounds[0][1], bounds[1][1], bounds[2][1]];
-
 function pointToString(point: number[]) {
   return point.join("|");
 }
@@ -86,7 +73,6 @@ function fill(inputFilled: Set<string>, startingPoints: Set<number[]>) {
   var filled = _.clone(inputFilled);
   var updates = new Set<number[]>(startingPoints);
   while (updates.size > 0) {
-    // console.log(updates);
     var newUpdates = new Set<number[]>();
     for (const value of updates) {
       getNeighbours(value)
@@ -102,69 +88,33 @@ function fill(inputFilled: Set<string>, startingPoints: Set<number[]>) {
   return filled;
 }
 
-function fill2(inputFilled: Set<string>, startingPoints: Set<number[]>) {
-  var filled = new Set<string>();
-  for (const value of startingPoints) {
-    filled.add(pointToString(value));
-  }
-  var updates = _.cloneDeep(startingPoints);
-  while (updates.size > 0) {
-    // console.log(filled.size);
-    // console.log(updates.size);
-    var newUpdates = new Set<number[]>();
-    for (const value of updates) {
-      getNeighbours(value)
-        .filter((neighbour) => isInBounds(neighbour))
-        .filter((neighbour) => !inputFilled.has(pointToString(neighbour)))
-        .filter((neighbour) => !filled.has(pointToString(neighbour)))
-        .forEach((neighbour) => {
-          newUpdates.add(neighbour);
-          filled.add(pointToString(neighbour));
-        });
-    }
-    updates = newUpdates;
-  }
-  return filled;
-}
+var start = [bounds[0][0], bounds[1][0], bounds[2][0]];
+var end = [bounds[0][1], bounds[1][1], bounds[2][1]];
 
 var flooded = fill(
   new Set<string>(points.map((p) => pointToString(p))),
   new Set<number[]>([start, end])
 );
-console.log({ start });
-console.log({ end });
 var volume =
   (Math.abs(end[0] - start[0]) + 1) *
   (Math.abs(end[1] - start[1]) + 1) *
   (Math.abs(end[2] - start[2]) + 1);
 console.log(`Volume Total: ${volume}`);
-console.log(`Volume Flooded:${flooded.size}`);
+console.log(`Volume Flooded: ${flooded.size}`);
 console.log(`Calculated number of hidden cells: ${volume - flooded.size}`);
 
-function stringToPoint(str: string) {
-  return str.split("|").map((c) => parseInt(c));
-}
-
-var hiddenPoints = new Set<string>();
-points
-  .flatMap((point) => getNeighbours(point))
-  .forEach((point) => hiddenPoints.add(pointToString(point)));
-
-var hiddenStart: number[][] = [];
-for (const pointString of hiddenPoints) {
-  if (!flooded.has(pointString)) {
-    hiddenStart.push(stringToPoint(pointString));
+function getUnexposedCubes() {
+  var hidden: number[][] = [];
+  for (var i = bounds[0][0]; i <= bounds[0][1]; i++) {
+    for (var j = bounds[1][0]; j <= bounds[1][1]; j++) {
+      for (var k = bounds[2][0]; k <= bounds[2][1]; k++) {
+        if (!flooded.has(pointToString([i, j, k]))) {
+          hidden.push([i, j, k]);
+        }
+      }
+    }
   }
-}
-console.log(`Initial number of hidden cells: ${hiddenStart.length}`);
-var hiddenString = fill2(flooded, new Set<number[]>(hiddenStart));
-console.log(`Number of hidden cells after flood: ${hiddenString.size}`);
-
-var hidden: number[][] = [];
-for (const pointString of hiddenString) {
-  if (!flooded.has(pointString)) {
-    hidden.push(stringToPoint(pointString));
-  }
+  return hidden;
 }
 
 export function getExposedSides(input: number[][]): number {
@@ -184,11 +134,11 @@ export function getExposedSides(input: number[][]): number {
     adjacentSides += numberOfAdjacent;
     pointA = points.shift();
   }
-  //   console.log({ totalSides });
-  //   console.log({ adjacentSides });
   return totalSides - adjacentSides;
 }
 
+const hidden = getUnexposedCubes();
+console.log(`Found number of hidden cells: ${hidden.length}`);
 const allExposedSides = getExposedSides(points);
 const internalExposedSides = getExposedSides(hidden);
 const difference = allExposedSides - internalExposedSides;
@@ -198,10 +148,3 @@ console.log({ difference });
 
 logTime();
 export {};
-
-// Part 1
-// 11832 - is too high
-
-// Part 2
-// 1828 - is too low
-// 2922 - is too high
