@@ -5,6 +5,8 @@ const logTime = getTimeLogger();
 
 var data = readFile("input");
 
+const TIME = 32;
+
 const blueprintRegex =
   /^Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.$/;
 
@@ -199,9 +201,9 @@ function getScore(state: State): number {
 }
 
 var maxGeodes: number[] = [];
-blueprints.forEach((blueprint) => {
+blueprints.slice(0, 3).forEach((blueprint) => {
   var states = [_.cloneDeep(initialState)];
-  for (var time = 0; time < 24; time++) {
+  for (var time = 0; time < TIME; time++) {
     states = states
       .flatMap((state) => buildBlueprint(blueprint, state))
       .flatMap((state) => gatherResources(state))
@@ -224,8 +226,13 @@ var totalQuality = maxGeodes.reduce((a, c, i) => {
   return a + c * (i + 1);
 });
 
+var product = maxGeodes.reduce((a, c) => {
+  return a * c;
+});
+
 console.log({ maxGeodes });
 console.log({ totalQuality });
+console.log({ product });
 
 // while (state.Minute < 24) {
 //   printState(state);
