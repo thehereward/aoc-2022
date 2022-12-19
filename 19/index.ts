@@ -1,150 +1,134 @@
-import _ from "lodash";
+import _, { initial } from "lodash";
 import { readFile, getTimeLogger } from "../common";
 
 const logTime = getTimeLogger();
 
 var data = readFile("input");
 
-var points = data.map((line) => line.split(",").map((c) => parseInt(c)));
+const blueprintRegex =
+  /^Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.$/;
 
-export function isAdjacent(cubeA: number[], cubeB: number[]): boolean {
+// [Ore, Clay, Obsidian]
+
+class ResourceState {
+  Quantity: number;
+  Robots: number;
+  NewRobots?: number;
+}
+
+class State {
+  Minute: number;
+  Ore: ResourceState;
+  Clay: ResourceState;
+  Obsidian: ResourceState;
+  Geode: ResourceState;
+}
+
+const initialState: State = {
+  Minute: 0,
+  Ore: { Quantity: 0, Robots: 1 },
+  Clay: { Quantity: 0, Robots: 0 },
+  Obsidian: { Quantity: 0, Robots: 0 },
+  Geode: { Quantity: 0, Robots: 0 },
+};
+
+class Blueprint {
+  Id: number;
+  OreRobotCost: number[];
+  ClayRobotCost: number[];
+  ObsidianRobotCost: number[];
+  GeodeRobotCost: number[];
+}
+
+export function instructionToBluePrint(line: string): Blueprint {
+  const match = line.match(blueprintRegex);
+  return {
+    Id: parseInt(match[1]),
+    OreRobotCost: [parseInt(match[2]), 0, 0],
+    ClayRobotCost: [parseInt(match[3]), 0, 0],
+    ObsidianRobotCost: [parseInt(match[4]), parseInt(match[5]), 0],
+    GeodeRobotCost: [parseInt(match[6]), 0, parseInt(match[7])],
+  };
+}
+
+const blueprints: Blueprint[] = data.map((line) => {
+  return instructionToBluePrint(line);
+});
+
+function gatherResources(state: State): State {
+  var newState = _.cloneDeep(state);
+  newState.Ore.Quantity = state.Ore.Quantity + state.Ore.Robots;
+  newState.Clay.Quantity = state.Clay.Quantity + state.Clay.Robots;
+  newState.Obsidian.Quantity = state.Obsidian.Quantity + state.Obsidian.Robots;
+  newState.Geode.Quantity = state.Geode.Quantity + state.Geode.Robots;
+  return newState;
+}
+
+function advanceTime(state: State): State {
+  var newState = _.cloneDeep(state);
+  newState.Minute = state.Minute + 1;
+  return newState;
+}
+
+function resourceToString(resource: ResourceState): string {
+  return `${resource.Quantity} (${resource.Robots})`;
+}
+
+function printState(state: State) {
+  console.log(
+    `Time: ${state.Minute} | Ore: ${resourceToString(
+      state.Ore
+    )} | Clay: ${resourceToString(state.Clay)} | Obsidian: ${resourceToString(
+      state.Obsidian
+    )} | Geode: ${resourceToString(state.Geode)} `
+  );
+}
+
+var states = [_.cloneDeep(initialState)];
+
+function canBuildRobot(cost: number[], state: State): boolean {
   return (
-    Math.abs(cubeA[0] - cubeB[0]) +
-      Math.abs(cubeA[1] - cubeB[1]) +
-      Math.abs(cubeA[2] - cubeB[2]) ==
-    1
+    cost[0] <= state.Ore.Quantity &&
+    cost[1] <= state.Clay.Quantity &&
+    cost[2] <= state.Obsidian.Quantity
   );
 }
 
-function getNeighbours(cube: number[]) {
-  return [
-    [cube[0] - 1, cube[1], cube[2]],
-    [cube[0] + 1, cube[1], cube[2]],
-    [cube[0], cube[1] - 1, cube[2]],
-    [cube[0], cube[1] + 1, cube[2]],
-    [cube[0], cube[1], cube[2] - 1],
-    [cube[0], cube[1], cube[2] + 1],
-  ];
+function buildRobot(cost: number[], state: State): State {
+  var newState = _.cloneDeep(state);
+  newState.Ore.Quantity = state.Ore.Quantity - cost[0];
+  newState.Clay.Quantity = state.Clay.Quantity - cost[1];
+  newState.Obsidian.Quantity = state.Obsidian.Quantity - cost[2];
+  return newState;
 }
 
-function getMinMax(points: number[][], dimension: number): number[] {
-  return points.reduce(
-    (a, c) => {
-      var value = c[dimension];
-      var min = Math.min(a[0], value);
-      var max = Math.max(a[1], value);
-      return [min, max];
-    },
-    [Infinity, -Infinity]
-  );
-}
-
-function getBounds(points: number[][]): number[][] {
-  var x = getMinMax(points, 0);
-  var y = getMinMax(points, 1);
-  var z = getMinMax(points, 2);
-  return [x, y, z];
-}
-
-function expandBounds(bounds: number[][]) {
-  return bounds.map((bound) => {
-    return [bound[0] - 1, bound[1] + 1];
-  });
-}
-
-var bounds = getBounds(points);
-bounds = expandBounds(bounds);
-
-function isInRange(bounds: number[], value: number) {
-  return value >= bounds[0] && value <= bounds[1];
-}
-
-function isInBounds(cube: number[]): boolean {
-  return bounds.reduce((a, c, i) => {
-    return a && isInRange(c, cube[i]);
-  }, true);
-}
-
-function pointToString(point: number[]) {
-  return point.join("|");
-}
-
-function fill(inputFilled: Set<string>, startingPoints: Set<number[]>) {
-  var filled = _.clone(inputFilled);
-  var updates = new Set<number[]>(startingPoints);
-  while (updates.size > 0) {
-    var newUpdates = new Set<number[]>();
-    for (const value of updates) {
-      getNeighbours(value)
-        .filter((neighbour) => isInBounds(neighbour))
-        .filter((neighbour) => !filled.has(pointToString(neighbour)))
-        .forEach((neighbour) => {
-          newUpdates.add(neighbour);
-          filled.add(pointToString(neighbour));
-        });
-    }
-    updates = newUpdates;
+export function buildBlueprint(blueprint: Blueprint, state: State): State[] {
+  const canBuildOre = canBuildRobot(blueprint.OreRobotCost, state);
+  if (canBuildOre) {
+    var newState = buildRobot(blueprint.OreRobotCost, state);
+    newState.Ore.NewRobots++;
   }
-  return filled;
+  const canBuildClay = canBuildRobot(blueprint.ClayRobotCost, state);
+  const canBuildObsidian = canBuildRobot(blueprint.ObsidianRobotCost, state);
+  const canBuildGeode = canBuildRobot(blueprint.GeodeRobotCost, state);
+  return [state];
 }
 
-var start = [bounds[0][0], bounds[1][0], bounds[2][0]];
-var end = [bounds[0][1], bounds[1][1], bounds[2][1]];
+// for (var time = 0; time < 24; time++){
+//   states.flatMap(state =>
+//     {
 
-var flooded = fill(
-  new Set<string>(points.map((p) => pointToString(p))),
-  new Set<number[]>([start, end])
-);
-var volume =
-  (Math.abs(end[0] - start[0]) + 1) *
-  (Math.abs(end[1] - start[1]) + 1) *
-  (Math.abs(end[2] - start[2]) + 1);
-console.log(`Volume Total: ${volume}`);
-console.log(`Volume Flooded: ${flooded.size}`);
-console.log(`Calculated number of hidden cells: ${volume - flooded.size}`);
+//     }
+//     )
+// }
 
-function getUnexposedCubes() {
-  var hidden: number[][] = [];
-  for (var i = bounds[0][0]; i <= bounds[0][1]; i++) {
-    for (var j = bounds[1][0]; j <= bounds[1][1]; j++) {
-      for (var k = bounds[2][0]; k <= bounds[2][1]; k++) {
-        if (!flooded.has(pointToString([i, j, k]))) {
-          hidden.push([i, j, k]);
-        }
-      }
-    }
-  }
-  return hidden;
-}
+// while (state.Minute < 24) {
+//   printState(state);
+//   state = gatherResources(state);
+//   state = advanceTime(state);
+// }
 
-export function getExposedSides(input: number[][]): number {
-  var points = _.cloneDeep(input);
-  var totalSides = points.length * 6;
-
-  var pointA: number[] = points.shift();
-  var adjacentSides: number = 0;
-  while (pointA != undefined) {
-    var numberOfAdjacent = points.reduce((a, c) => {
-      if (isAdjacent(pointA, c)) {
-        return a + 2; // Because each adjacency removes one side from each cube
-      } else {
-        return a;
-      }
-    }, 0);
-    adjacentSides += numberOfAdjacent;
-    pointA = points.shift();
-  }
-  return totalSides - adjacentSides;
-}
-
-const hidden = getUnexposedCubes();
-console.log(`Found number of hidden cells: ${hidden.length}`);
-const allExposedSides = getExposedSides(points);
-const internalExposedSides = getExposedSides(hidden);
-const difference = allExposedSides - internalExposedSides;
-console.log({ allExposedSides });
-console.log({ internalExposedSides });
-console.log({ difference });
+console.log(blueprints);
 
 logTime();
 export {};
