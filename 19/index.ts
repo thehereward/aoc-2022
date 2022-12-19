@@ -5,12 +5,8 @@ const logTime = getTimeLogger();
 
 var data = readFile("input");
 
-const TIME = 32;
-
 const blueprintRegex =
   /^Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.$/;
-
-// [Ore, Clay, Obsidian]
 
 class ResourceState {
   Quantity: number;
@@ -34,6 +30,7 @@ const initialState: State = {
   Geode: { Quantity: 0, Robots: 0, NewRobots: 0 },
 };
 
+// [Ore, Clay, Obsidian]
 class Blueprint {
   Id: number;
   OreRobotCost: number[];
@@ -58,7 +55,8 @@ const blueprints: Blueprint[] = data.map((line) => {
 });
 
 function gatherResources(state: State): State {
-  var newState = _.cloneDeep(state);
+  // var newState = _.cloneDeep(state);
+  var newState = state;
   newState.Ore.Quantity = state.Ore.Quantity + state.Ore.Robots;
   newState.Clay.Quantity = state.Clay.Quantity + state.Clay.Robots;
   newState.Obsidian.Quantity = state.Obsidian.Quantity + state.Obsidian.Robots;
@@ -67,7 +65,8 @@ function gatherResources(state: State): State {
 }
 
 function addRobots(state: State): State {
-  var newState = _.cloneDeep(state);
+  // var newState = _.cloneDeep(state);
+  var newState = state;
   newState.Ore.Robots = state.Ore.NewRobots + state.Ore.Robots;
   newState.Ore.NewRobots = 0;
   newState.Clay.Robots = state.Clay.NewRobots + state.Clay.Robots;
@@ -80,7 +79,8 @@ function addRobots(state: State): State {
 }
 
 function advanceTime(state: State): State {
-  var newState = _.cloneDeep(state);
+  // var newState = _.cloneDeep(state);
+  var newState = state;
   newState.Minute = state.Minute + 1;
   return newState;
 }
@@ -109,18 +109,16 @@ function canBuildRobot(cost: number[], state: State): boolean {
 
 function buildRobot(cost: number[], state: State): State {
   var newState = _.cloneDeep(state);
-  newState.Ore.Quantity = state.Ore.Quantity - cost[0];
-  newState.Clay.Quantity = state.Clay.Quantity - cost[1];
-  newState.Obsidian.Quantity = state.Obsidian.Quantity - cost[2];
+  newState.Ore.Quantity = newState.Ore.Quantity - cost[0];
+  newState.Clay.Quantity = newState.Clay.Quantity - cost[1];
+  newState.Obsidian.Quantity = newState.Obsidian.Quantity - cost[2];
   return newState;
 }
 
 export function buildBlueprint(blueprint: Blueprint, state: State): State[] {
-  // console.log(state);
-  const newStates: State[] = [];
+  const newStates: State[] = [_.cloneDeep(state)];
   const canBuildOre = canBuildRobot(blueprint.OreRobotCost, state);
   if (canBuildOre) {
-    // console.log("Ore");
     var newState = buildRobot(blueprint.OreRobotCost, state);
     newState.Ore.NewRobots = newState.Ore.NewRobots + 1;
     newStates.push(newState);
@@ -128,7 +126,6 @@ export function buildBlueprint(blueprint: Blueprint, state: State): State[] {
 
   const canBuildClay = canBuildRobot(blueprint.ClayRobotCost, state);
   if (canBuildClay) {
-    // console.log("Clay");
     var newState = buildRobot(blueprint.ClayRobotCost, state);
     newState.Clay.NewRobots++;
     newStates.push(newState);
@@ -136,7 +133,6 @@ export function buildBlueprint(blueprint: Blueprint, state: State): State[] {
 
   const canBuildObsidian = canBuildRobot(blueprint.ObsidianRobotCost, state);
   if (canBuildObsidian) {
-    // console.log("Obsidian");
     var newState = buildRobot(blueprint.ObsidianRobotCost, state);
     newState.Obsidian.NewRobots++;
     newStates.push(newState);
@@ -144,47 +140,12 @@ export function buildBlueprint(blueprint: Blueprint, state: State): State[] {
 
   const canBuildGeode = canBuildRobot(blueprint.GeodeRobotCost, state);
   if (canBuildGeode) {
-    // console.log("Geode");
     var newState = buildRobot(blueprint.GeodeRobotCost, state);
     newState.Geode.NewRobots++;
     newStates.push(newState);
   }
 
-  // if (!canBuildOre && !canBuildClay && !canBuildObsidian && !canBuildGeode) {
-  // console.log("None");
-  newStates.push(_.cloneDeep(state));
-  // }
   return newStates;
-}
-
-function cullExcessiveRobots(state: State, time: number): boolean {
-  if (time > 8) {
-    if (state.Ore.Robots > 5) {
-      return false;
-    }
-    if (state.Clay.Robots > 5) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function cullWithoutClay(state: State, time: number): boolean {
-  if (time > 8) {
-    if (state.Clay.Robots == 0) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function cullWithoutObsidian(state: State, time: number): boolean {
-  if (time > 14) {
-    if (state.Obsidian.Robots == 0) {
-      return false;
-    }
-  }
-  return true;
 }
 
 function getResourceScore(state: ResourceState, weight: number): number {
@@ -200,47 +161,53 @@ function getScore(state: State): number {
   );
 }
 
-var maxGeodes: number[] = [];
-blueprints.slice(0, 3).forEach((blueprint) => {
-  var states = [_.cloneDeep(initialState)];
-  for (var time = 0; time < TIME; time++) {
-    states = states
-      .flatMap((state) => buildBlueprint(blueprint, state))
-      .flatMap((state) => gatherResources(state))
-      .flatMap((state) => addRobots(state))
-      .flatMap((state) => advanceTime(state))
-      .sort((a, b) => getScore(b) - getScore(a))
-      .slice(0, 1000);
-    // .filter((state) => cullExcessiveRobots(state, time))
-    // .filter((state) => cullWithoutClay(state, time))
-    // .filter((state) => cullWithoutObsidian(state, time));
-    // console.log(`Time: ${time} | ${states.length}`);
-  }
+function getMaxGeodes(blueprints: Blueprint[], timeLimit: number) {
+  var maxGeodes: number[] = [];
+  blueprints.forEach((blueprint) => {
+    var states = [_.cloneDeep(initialState)];
+    for (var time = 0; time < timeLimit; time++) {
+      states = states
+        .flatMap((state) => buildBlueprint(blueprint, state))
+        .flatMap((state) => gatherResources(state))
+        .flatMap((state) => addRobots(state))
+        .flatMap((state) => advanceTime(state))
+        .sort((a, b) => getScore(b) - getScore(a))
+        .slice(0, 400);
+    }
 
-  states.sort((a, b) => b.Geode.Quantity - a.Geode.Quantity);
-  printState(states[0]);
-  maxGeodes.push(states[0].Geode.Quantity);
-});
+    states.sort((a, b) => b.Geode.Quantity - a.Geode.Quantity);
+    printState(states[0]);
+    maxGeodes.push(states[0].Geode.Quantity);
+  });
+  return maxGeodes;
+}
 
-var totalQuality = maxGeodes.reduce((a, c, i) => {
-  return a + c * (i + 1);
-});
+export function part1() {
+  console.log("Part 1");
+  var part1Time = getTimeLogger();
+  var maxGeodes = getMaxGeodes(blueprints, 24);
+  var totalQuality = maxGeodes.reduce((a, c, i) => {
+    return a + c * (i + 1);
+  });
+  console.log(`Part 1: ${totalQuality}`);
+  part1Time();
+  return totalQuality;
+}
 
-var product = maxGeodes.reduce((a, c) => {
-  return a * c;
-});
+export function part2() {
+  console.log("Part 2");
+  var part2Time = getTimeLogger();
+  var maxGeodes = getMaxGeodes(blueprints.slice(0, 3), 32);
+  var product = maxGeodes.reduce((a, c) => {
+    return a * c;
+  });
+  console.log(`Part 2: ${product}`);
+  part2Time();
+  return product;
+}
 
-console.log({ maxGeodes });
-console.log({ totalQuality });
-console.log({ product });
-
-// while (state.Minute < 24) {
-//   printState(state);
-//   state = gatherResources(state);
-//   state = advanceTime(state);
-// }
-
-// console.log(states);
+part1();
+part2();
 
 logTime();
 export {};

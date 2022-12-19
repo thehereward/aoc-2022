@@ -1,5 +1,5 @@
 import each from "jest-each";
-import { instructionToBluePrint, buildBlueprint } from ".";
+import { instructionToBluePrint, buildBlueprint, part1, part2 } from ".";
 
 describe("parses input lines to blue prints", () => {
   each([
@@ -104,5 +104,14 @@ describe("gets all possible builds", () => {
     ],
   ]).test("for (%s) and (%s) returns %s", (blueprint, state, expected) => {
     expect(buildBlueprint(blueprint, state)).toStrictEqual(expected);
+  });
+});
+
+describe("it passes", () => {
+  it("part 1", () => {
+    expect(part1()).toBe(1092);
+  });
+  it("part 2", () => {
+    expect(part2()).toBe(3542);
   });
 });
