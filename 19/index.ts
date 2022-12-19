@@ -1,4 +1,4 @@
-import _, { initial } from "lodash";
+import _ from "lodash";
 import { readFile, getTimeLogger } from "../common";
 
 const logTime = getTimeLogger();
@@ -13,7 +13,7 @@ const blueprintRegex =
 class ResourceState {
   Quantity: number;
   Robots: number;
-  NewRobots?: number;
+  NewRobots: number;
 }
 
 class State {
@@ -26,10 +26,10 @@ class State {
 
 const initialState: State = {
   Minute: 0,
-  Ore: { Quantity: 0, Robots: 1 },
-  Clay: { Quantity: 0, Robots: 0 },
-  Obsidian: { Quantity: 0, Robots: 0 },
-  Geode: { Quantity: 0, Robots: 0 },
+  Ore: { Quantity: 0, Robots: 1, NewRobots: 0 },
+  Clay: { Quantity: 0, Robots: 0, NewRobots: 0 },
+  Obsidian: { Quantity: 0, Robots: 0, NewRobots: 0 },
+  Geode: { Quantity: 0, Robots: 0, NewRobots: 0 },
 };
 
 class Blueprint {
@@ -64,6 +64,19 @@ function gatherResources(state: State): State {
   return newState;
 }
 
+function addRobots(state: State): State {
+  var newState = _.cloneDeep(state);
+  newState.Ore.Robots = state.Ore.NewRobots + state.Ore.Robots;
+  newState.Ore.NewRobots = 0;
+  newState.Clay.Robots = state.Clay.NewRobots + state.Clay.Robots;
+  newState.Clay.NewRobots = 0;
+  newState.Obsidian.Robots = state.Obsidian.NewRobots + state.Obsidian.Robots;
+  newState.Obsidian.NewRobots = 0;
+  newState.Geode.Robots = state.Geode.NewRobots + state.Geode.Robots;
+  newState.Geode.NewRobots = 0;
+  return newState;
+}
+
 function advanceTime(state: State): State {
   var newState = _.cloneDeep(state);
   newState.Minute = state.Minute + 1;
@@ -84,8 +97,6 @@ function printState(state: State) {
   );
 }
 
-var states = [_.cloneDeep(initialState)];
-
 function canBuildRobot(cost: number[], state: State): boolean {
   return (
     cost[0] <= state.Ore.Quantity &&
@@ -103,24 +114,118 @@ function buildRobot(cost: number[], state: State): State {
 }
 
 export function buildBlueprint(blueprint: Blueprint, state: State): State[] {
+  // console.log(state);
+  const newStates: State[] = [];
   const canBuildOre = canBuildRobot(blueprint.OreRobotCost, state);
   if (canBuildOre) {
+    // console.log("Ore");
     var newState = buildRobot(blueprint.OreRobotCost, state);
-    newState.Ore.NewRobots++;
+    newState.Ore.NewRobots = newState.Ore.NewRobots + 1;
+    newStates.push(newState);
   }
+
   const canBuildClay = canBuildRobot(blueprint.ClayRobotCost, state);
+  if (canBuildClay) {
+    // console.log("Clay");
+    var newState = buildRobot(blueprint.ClayRobotCost, state);
+    newState.Clay.NewRobots++;
+    newStates.push(newState);
+  }
+
   const canBuildObsidian = canBuildRobot(blueprint.ObsidianRobotCost, state);
+  if (canBuildObsidian) {
+    // console.log("Obsidian");
+    var newState = buildRobot(blueprint.ObsidianRobotCost, state);
+    newState.Obsidian.NewRobots++;
+    newStates.push(newState);
+  }
+
   const canBuildGeode = canBuildRobot(blueprint.GeodeRobotCost, state);
-  return [state];
+  if (canBuildGeode) {
+    // console.log("Geode");
+    var newState = buildRobot(blueprint.GeodeRobotCost, state);
+    newState.Geode.NewRobots++;
+    newStates.push(newState);
+  }
+
+  // if (!canBuildOre && !canBuildClay && !canBuildObsidian && !canBuildGeode) {
+  // console.log("None");
+  newStates.push(_.cloneDeep(state));
+  // }
+  return newStates;
 }
 
-// for (var time = 0; time < 24; time++){
-//   states.flatMap(state =>
-//     {
+function cullExcessiveRobots(state: State, time: number): boolean {
+  if (time > 8) {
+    if (state.Ore.Robots > 5) {
+      return false;
+    }
+    if (state.Clay.Robots > 5) {
+      return false;
+    }
+  }
+  return true;
+}
 
-//     }
-//     )
-// }
+function cullWithoutClay(state: State, time: number): boolean {
+  if (time > 8) {
+    if (state.Clay.Robots == 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function cullWithoutObsidian(state: State, time: number): boolean {
+  if (time > 14) {
+    if (state.Obsidian.Robots == 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getResourceScore(state: ResourceState, weight: number): number {
+  return state.Quantity * weight + state.Robots * weight * 2;
+}
+
+function getScore(state: State): number {
+  return (
+    getResourceScore(state.Ore, 1) +
+    getResourceScore(state.Clay, 10) +
+    getResourceScore(state.Obsidian, 100) +
+    getResourceScore(state.Geode, 1000)
+  );
+}
+
+var maxGeodes: number[] = [];
+blueprints.forEach((blueprint) => {
+  var states = [_.cloneDeep(initialState)];
+  for (var time = 0; time < 24; time++) {
+    states = states
+      .flatMap((state) => buildBlueprint(blueprint, state))
+      .flatMap((state) => gatherResources(state))
+      .flatMap((state) => addRobots(state))
+      .flatMap((state) => advanceTime(state))
+      .sort((a, b) => getScore(b) - getScore(a))
+      .slice(0, 1000);
+    // .filter((state) => cullExcessiveRobots(state, time))
+    // .filter((state) => cullWithoutClay(state, time))
+    // .filter((state) => cullWithoutObsidian(state, time));
+    // console.log(`Time: ${time} | ${states.length}`);
+  }
+
+  states.sort((a, b) => b.Geode.Quantity - a.Geode.Quantity);
+  printState(states[0]);
+  maxGeodes.push(states[0].Geode.Quantity);
+});
+
+var totalQuality = maxGeodes.reduce((a, c, i) => {
+  return a + c * (i + 1);
+});
+
+console.log({ maxGeodes });
+console.log({ totalQuality });
 
 // while (state.Minute < 24) {
 //   printState(state);
@@ -128,7 +233,7 @@ export function buildBlueprint(blueprint: Blueprint, state: State): State[] {
 //   state = advanceTime(state);
 // }
 
-console.log(blueprints);
+// console.log(states);
 
 logTime();
 export {};
