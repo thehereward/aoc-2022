@@ -13,67 +13,63 @@ class Item {
 
 var items: Item[] = data.map((line) => {
   return {
-    value: parseInt(line) * KEY,
+    value: parseInt(line),
   };
 });
 
-// console.log(items.length);
-// var set = new Set(items);
-// console.log(set.size);
-
-var newOrder = _.clone(items);
-
-function printList(list: Item[]) {
-  logTime(list.map((i) => i.value).join(", "));
-}
-
 export function moveItem(list: Item[], item: Item) {
-  // printList(list);
   var index = list.indexOf(item);
   list.splice(index, 1);
   var length = list.length;
   var value = item.value;
-  var newIndex = index + value;
-  if (newIndex > length) {
-    newIndex = newIndex % length;
-  } else if (newIndex < 0) {
-    // while (newIndex < 0) {
-    //   newIndex = newIndex + length;
-    // }
-    newIndex = newIndex % length;
-  } else if (newIndex == 0) {
+  var newIndex = (index + value) % length;
+  if (newIndex == 0) {
     newIndex = length;
   }
-
-  // console.log({
-  //   index,
-  //   length,
-  //   value,
-  //   newIndex,
-  // });
 
   list.splice(newIndex, 0, item);
   return list;
 }
 
-for (var i = 0; i < 10; i++) {
-  items.forEach((item) => {
-    newOrder = moveItem(newOrder, item);
+function mix(instructions: Item[], list: Item[]) {
+  instructions.forEach((item) => {
+    list = moveItem(list, item);
   });
+  return list;
 }
-// printList(newOrder);
 
-var indexOfZero = newOrder.findIndex((item) => item.value == 0);
+function getCoordinates(list: Item[]) {
+  var indexOfZero = list.findIndex((item) => item.value == 0);
+  var coords = [1000, 2000, 3000].map((number) => {
+    var index = (indexOfZero + number) % list.length;
+    return list[index];
+  });
+  return coords.reduce((a, c) => a + c.value, 0);
+}
 
-var coords = [1000, 2000, 3000].map((number) => {
-  var index = (indexOfZero + number) % newOrder.length;
-  return newOrder[index];
-});
+function part1(list: Item[]) {
+  var instructions = _.clone(list);
+  list = mix(instructions, list);
+  var answer = getCoordinates(list);
+  logTime(`Part 1: ${answer}`);
+}
 
-console.log(coords.reduce((a, c) => a + c.value, 0));
+function part2(list: Item[]) {
+  list = list.map((i) => {
+    return {
+      value: i.value * KEY,
+    };
+  });
+  var instructions = _.clone(list);
+  for (var i = 0; i < 10; i++) {
+    list = mix(instructions, list);
+  }
+  var answer = getCoordinates(list);
+  logTime(`Part 2: ${answer}`);
+}
 
-// Part 1
-// 12570 - incorrect
+part1(_.clone(items));
+part2(_.clone(items));
 
 logTime();
 export {};
