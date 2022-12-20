@@ -5,13 +5,15 @@ const logTime = getTimeLogger();
 
 var data = readFile("input");
 
+const KEY = 811589153;
+
 class Item {
   value: number;
 }
 
 var items: Item[] = data.map((line) => {
   return {
-    value: parseInt(line),
+    value: parseInt(line) * KEY,
   };
 });
 
@@ -54,9 +56,11 @@ export function moveItem(list: Item[], item: Item) {
   return list;
 }
 
-items.forEach((item) => {
-  newOrder = moveItem(newOrder, item);
-});
+for (var i = 0; i < 10; i++) {
+  items.forEach((item) => {
+    newOrder = moveItem(newOrder, item);
+  });
+}
 // printList(newOrder);
 
 var indexOfZero = newOrder.findIndex((item) => item.value == 0);
