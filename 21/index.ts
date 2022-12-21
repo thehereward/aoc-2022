@@ -4,72 +4,83 @@ import { readFile, getTimeLogger } from "../common";
 const logTime = getTimeLogger();
 
 var data = readFile("input");
+const instructionRegex = /([a-z]{4}) ([\+\-\*\/]) ([a-z]{4})/;
 
-const KEY = 811589153;
+class Unsolved {
+  id: string;
+  op1: string;
+  op: string;
+  op2: string;
+}
 
-class Item {
+class Solved {
+  id: string;
   value: number;
 }
 
-var items: Item[] = data.map((line) => {
-  return {
-    value: parseInt(line),
-  };
+var unsolved: Unsolved[] = [];
+var solved: Solved[] = [];
+var solvedIds: Set<string> = new Set<string>();
+
+data.forEach((line) => {
+  if (line.length == 0) {
+    return;
+  }
+  var parts = line.split(": ");
+  var value = parseInt(parts[1]);
+  if (isNaN(value)) {
+    const match = parts[1].match(instructionRegex);
+    unsolved.push({
+      id: parts[0],
+      op1: match[1],
+      op: match[2],
+      op2: match[3],
+    });
+  } else {
+    solved.push({
+      id: parts[0],
+      value,
+    });
+    solvedIds.add(parts[0]);
+  }
 });
 
-export function moveItem(list: Item[], item: Item) {
-  var index = list.indexOf(item);
-  list.splice(index, 1);
-  var length = list.length;
-  var value = item.value;
-  var newIndex = (index + value) % length;
-  if (newIndex == 0) {
-    newIndex = length;
-  }
-
-  list.splice(newIndex, 0, item);
-  return list;
-}
-
-function mix(instructions: Item[], list: Item[]) {
-  instructions.forEach((item) => {
-    list = moveItem(list, item);
+while (unsolved.length > 0) {
+  unsolved.forEach((line, index) => {
+    if (solvedIds.has(line.op1) && solvedIds.has(line.op2)) {
+      const id = line.id;
+      const op1 = solved.filter((i) => i.id == line.op1)[0].value;
+      const op2 = solved.filter((i) => i.id == line.op2)[0].value;
+      var value: number = undefined;
+      switch (line.op) {
+        case "+":
+          value = op1 + op2;
+          break;
+        case "-":
+          value = op1 - op2;
+          break;
+        case "*":
+          value = op1 * op2;
+          break;
+        case "/":
+          value = op1 / op2;
+          break;
+      }
+      const answer = {
+        id,
+        value,
+      };
+      solved.push(answer);
+      solvedIds.add(id);
+      unsolved.splice(index, 1);
+      // console.log(answer);
+    }
   });
-  return list;
 }
 
-function getCoordinates(list: Item[]) {
-  var indexOfZero = list.findIndex((item) => item.value == 0);
-  var coords = [1000, 2000, 3000].map((number) => {
-    var index = (indexOfZero + number) % list.length;
-    return list[index];
-  });
-  return coords.reduce((a, c) => a + c.value, 0);
-}
-
-function part1(list: Item[]) {
-  var instructions = _.clone(list);
-  list = mix(instructions, list);
-  var answer = getCoordinates(list);
-  logTime(`Part 1: ${answer}`);
-}
-
-function part2(list: Item[]) {
-  list = list.map((i) => {
-    return {
-      value: i.value * KEY,
-    };
-  });
-  var instructions = _.clone(list);
-  for (var i = 0; i < 10; i++) {
-    list = mix(instructions, list);
-  }
-  var answer = getCoordinates(list);
-  logTime(`Part 2: ${answer}`);
-}
-
-part1(_.clone(items));
-part2(_.clone(items));
+console.log(solved);
+console.log(unsolved);
+console.log(solved.filter((s) => s.id == "root"));
 
 logTime();
 export {};
