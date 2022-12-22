@@ -1,147 +1,48 @@
 import each from "jest-each";
-import { moveItem } from ".";
+import { turn } from ".";
 
-describe("move item", () => {
-  const list = [
-    { value: 1 },
-    { value: 2 },
-    { value: -3 },
-    { value: 3 },
-    { value: -2 },
-    { value: 0 },
-    { value: 4 },
-  ];
+describe("turns right", () => {
   each([
     [
-      list,
-      list[0],
-      [
-        { value: 2 },
-        { value: 1 },
-        { value: -3 },
-        { value: 3 },
-        { value: -2 },
-        { value: 0 },
-        { value: 4 },
-      ],
+      [1, 0],
+      [0, 1],
     ],
-  ]).test("processes index 0 (2)", (list, item, expected) => {
-    expect(moveItem(list, item)).toEqual(expected);
+    [
+      [0, 1],
+      [-1, 0],
+    ],
+    [
+      [-1, 0],
+      [0, -1],
+    ],
+    [
+      [0, -1],
+      [1, 0],
+    ],
+  ]).test("heading %s turns R to %s", (initial, expected) => {
+    expect(turn(initial, "R")).toEqual(expected);
   });
 });
 
-describe("move item", () => {
-  const list = [
-    { value: 1 },
-    { value: 2 },
-    { value: -2 },
-    { value: -3 },
-    { value: 0 },
-    { value: 3 },
-    { value: 4 },
-  ];
+describe("turns left", () => {
   each([
     [
-      list,
-      list[2],
-      [
-        { value: 1 },
-        { value: 2 },
-        { value: -3 },
-        { value: 0 },
-        { value: 3 },
-        { value: 4 },
-        { value: -2 },
-      ],
+      [1, 0],
+      [0, -1],
     ],
-  ]).test("processes index 2 (-2)", (list, item, expected) => {
-    expect(moveItem(list, item)).toEqual(expected);
-  });
-});
-
-describe("move item", () => {
-  const list = [
-    { value: 1 },
-    { value: 2 },
-    { value: -3 },
-    { value: 0 },
-    { value: 3 },
-    { value: 4 },
-    { value: -2 },
-  ];
-  each([
     [
-      list,
-      list[5],
-      [
-        { value: 1 },
-        { value: 2 },
-        { value: -3 },
-        { value: 4 },
-        { value: 0 },
-        { value: 3 },
-        { value: -2 },
-      ],
+      [0, 1],
+      [1, 0],
     ],
-  ]).test("processes index 5 (4)", (list, item, expected) => {
-    expect(moveItem(list, item)).toEqual(expected);
-  });
-});
-
-describe("move item", () => {
-  const list = [
-    { value: 1 },
-    { value: 2 },
-    { value: -3 },
-    { value: 0 },
-    { value: 3 },
-    { value: 4 },
-    { value: -2 },
-  ];
-  each([
     [
-      list,
-      list[3],
-      [
-        { value: 1 },
-        { value: 2 },
-        { value: -3 },
-        { value: 0 },
-        { value: 3 },
-        { value: 4 },
-        { value: -2 },
-      ],
+      [-1, 0],
+      [0, 1],
     ],
-  ]).test("processes index 3 (0)", (list, item, expected) => {
-    expect(moveItem(list, item)).toEqual(expected);
-  });
-});
-
-describe("move item", () => {
-  const list = [
-    { value: 4 },
-    { value: -2 },
-    { value: 5 },
-    { value: 6 },
-    { value: 7 },
-    { value: 8 },
-    { value: 9 },
-  ];
-  each([
     [
-      list,
-      list[1],
-      [
-        { value: 4 },
-        { value: 5 },
-        { value: 6 },
-        { value: 7 },
-        { value: 8 },
-        { value: -2 },
-        { value: 9 },
-      ],
+      [0, -1],
+      [-1, 0],
     ],
-  ]).test("processes index 1 (-2)", (list, item, expected) => {
-    expect(moveItem(list, item)).toEqual(expected);
+  ]).test("heading %s turns L to %s", (initial, expected) => {
+    expect(turn(initial, "L")).toEqual(expected);
   });
 });
