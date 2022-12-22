@@ -1,10 +1,15 @@
-import _ from "lodash";
+import _, { max } from "lodash";
 import { readFile, getTimeLogger } from "../common";
 
 export const NORTH = [0, -1];
 export const SOUTH = [0, 1];
 export const EAST = [1, 0];
 export const WEST = [-1, 0];
+
+const _NORTH = `${NORTH[0]}|${NORTH[1]}`;
+const _SOUTH = `${SOUTH[0]}|${SOUTH[1]}`;
+const _EAST = `${EAST[0]}|${EAST[1]}`;
+const _WEST = `${WEST[0]}|${WEST[1]}`;
 
 const logTime = getTimeLogger();
 
@@ -26,6 +31,13 @@ const maxY = map.length;
 const maxX = map.reduce((a, c) => {
   return a >= c.length ? a : c.length;
 }, -Infinity);
+console.log({ maxX });
+console.log({ maxY });
+const yIncrement = maxY / 4;
+const xIncrement = maxX / 3;
+if (xIncrement != yIncrement) {
+  throw new Error();
+}
 
 // const rowMinMax: number[] = map.reduce((a, c) => {
 
@@ -43,47 +55,37 @@ for (var y = 0; y < maxY; y++) {
     }
   }
 }
-console.log({ maxX });
-console.log({ maxY });
 export function getSegment(
   maxX: number,
   maxY: number,
   position: number[]
 ): number {
-  console.log(maxX);
-  console.log(maxY);
-  const xIncrement = maxX / 4;
-  const yIncrement = maxY / 3;
-  console.log(xIncrement);
-  console.log(yIncrement);
-  if (xIncrement != yIncrement) {
-    throw new Error();
-  }
-
   const x = Math.floor(position[0] / xIncrement);
   const y = Math.floor(position[1] / yIncrement);
-  // console.log({ x, y });
 
   const s = pointToString(x, y);
   switch (s) {
-    case "0|2":
+    case "0|1":
       return 1;
-    case "1|0":
+    case "0|2":
       return 2;
     case "1|1":
       return 3;
-    case "1|2":
+    case "2|0":
       return 4;
-    case "2|2":
+    case "2|1":
       return 5;
-    case "2|3":
+    case "3|0":
       return 6;
+    default:
+      console.log(
+        `Error finding segment for ${position} (x: ${x} | y: ${y}) s: ${s}`
+      );
+      throw new Error();
   }
 
   return 0;
 }
-
-// console.log(mapData);
 
 var distances = instructionString
   .split(/[R|L]/)
@@ -102,6 +104,7 @@ var initialState: State = {
 };
 
 export function turn(heading: number[], direction: string) {
+  console.log(`Turn: ${direction}`);
   var newHeading;
   if (direction == "R") {
     newHeading = [-1 * heading[1], heading[0]];
@@ -121,26 +124,26 @@ function positionToString(position: number[]) {
 
 function getDirection(heading: number[]) {
   switch (`${heading[0]}|${heading[1]}`) {
-    case "0|1":
+    case _SOUTH:
       return "V";
-    case "0|-1":
+    case _NORTH:
       return "^";
-    case "1|0":
+    case _EAST:
       return ">";
-    case "-1|0":
+    case _WEST:
       return "V";
   }
 }
 
 function getScore(heading: number[]): number {
   switch (`${heading[0]}|${heading[1]}`) {
-    case "0|1":
+    case _SOUTH:
       return 1;
-    case "0|-1":
+    case _NORTH:
       return 3;
-    case "1|0":
+    case _EAST:
       return 0;
-    case "-1|0":
+    case _WEST:
       return 2;
   }
 }
@@ -197,12 +200,16 @@ function getNextStateOld(lastState: State): State {
   };
 }
 
+class NotNeededError extends Error {}
+class NeedsFixingError extends Error {}
+
 export function getNextStateHard(
   maxX: number,
   maxY: number,
   position: number[],
   heading: number[]
 ): State {
+  console.log(position);
   var nextPosition = add(position, heading);
   var nextPositionString = positionToString(nextPosition);
   if (mapData.has(nextPositionString)) {
@@ -213,129 +220,110 @@ export function getNextStateHard(
   }
 
   const segment = getSegment(maxX, maxY, position);
-  const yIncrement = maxY / 3;
-  const xIncrement = maxX / 4;
   const x = position[0];
   const y = position[1];
   switch (segment) {
     case 1:
       switch (`${heading[0]}|${heading[1]}`) {
-        case "0|1":
-          var newPosition = [x, y + 1];
-          return { position: newPosition, heading: SOUTH };
-        case "0|-1":
-          var newPosition = [xIncrement - (x % xIncrement) - 1, yIncrement];
-          return { position: newPosition, heading: SOUTH };
-        case "1|0":
-          var newPosition = [maxX - 1, maxY - (y % yIncrement) - 1];
-          return { position: newPosition, heading: WEST };
-        case "-1|0":
-          var newPosition = [xIncrement + (y % yIncrement), yIncrement];
-          return { position: newPosition, heading: SOUTH };
-        // return "<";
+        case _SOUTH:
+          throw new NotNeededError();
+        case _NORTH: // to 6 WEST
+          var newPosition = [0, yIncrement * 3 + (x % xIncrement)];
+          return { position: newPosition, heading: EAST };
+        case _EAST:
+          throw new NotNeededError();
+        case _WEST: // to 4 WEST
+          var newPosition = [0, yIncrement * 3 - (y % yIncrement) - 1];
+          return { position: newPosition, heading: EAST };
       }
       break;
     case 2:
       switch (`${heading[0]}|${heading[1]}`) {
-        case "0|1":
-          var newPosition = [xIncrement * 3 - 1 - x, maxY - 1];
+        case _SOUTH: // to 3 EAST
+          var newPosition = [2 * xIncrement - 1, (x % xIncrement) + yIncrement];
+          return { position: newPosition, heading: WEST };
+        case _NORTH: // to 6 SOUTH
+          var newPosition = [x % xIncrement, maxY - 1];
           return { position: newPosition, heading: NORTH };
-        // return "V";
-        case "0|-1":
-          var newPosition = [xIncrement * 3 - 1 - x, 0];
-          return { position: newPosition, heading: SOUTH };
-        case "1|0":
-          var newPosition = [x + 1, y];
-          return { position: newPosition, heading: EAST };
-        case "-1|0":
-          var newPosition = [maxX - (y % yIncrement) - 1, maxY - 1];
-          return { position: newPosition, heading: NORTH };
-        // return "<";
+        case _EAST: // to 5 EAST
+          var newPosition = [
+            2 * xIncrement - 1,
+            3 * yIncrement - (y % yIncrement) - 1,
+          ];
+          return { position: newPosition, heading: WEST };
+        case _WEST:
+          throw new NotNeededError();
       }
       break;
     case 3:
       switch (`${heading[0]}|${heading[1]}`) {
-        case "0|1":
-          var newPosition = [
-            xIncrement * 2,
-            maxY - (position[0] % xIncrement) - 1,
-          ];
-          return { position: newPosition, heading: EAST };
-        case "0|-1":
-          var newPosition = [xIncrement * 2, position[0] - xIncrement];
-          return { position: newPosition, heading: EAST };
-        case "1|0":
-          var newPosition = [x + 1, y];
-          return { position: newPosition, heading: EAST };
-        case "-1|0":
-          var newPosition = [x - 1, y];
-          return { position: newPosition, heading: WEST };
+        case _SOUTH:
+          throw new NotNeededError();
+        case _NORTH:
+          throw new NotNeededError();
+        case _EAST: // to 2 SOUTH
+          var newPosition = [2 * xIncrement + (y % yIncrement), yIncrement - 1];
+          return { position: newPosition, heading: NORTH };
+        case _WEST: // to 4 NORTH
+          var newPosition = [y % yIncrement, yIncrement * 2];
+          return { position: newPosition, heading: SOUTH };
       }
       break;
     case 4:
       switch (`${heading[0]}|${heading[1]}`) {
-        case "0|1":
-          var newPosition = [x, y + 1];
-          return { position: newPosition, heading: SOUTH };
-        case "0|-1":
-          var newPosition = [x, y - 1];
-          return { position: newPosition, heading: NORTH };
-        case "1|0":
-          var newPosition = [maxX - (y % yIncrement) - 1, yIncrement * 2];
-          return { position: newPosition, heading: SOUTH };
-        case "-1|0":
-          var newPosition = [x - 1, y];
-          return { position: newPosition, heading: WEST };
+        case _SOUTH:
+          throw new NotNeededError();
+        case _NORTH:
+          var newPosition = [xIncrement, yIncrement + (x % xIncrement)];
+          return { position: newPosition, heading: EAST };
+        case _EAST:
+          throw new NotNeededError();
+        case _WEST:
+          var newPosition = [xIncrement, yIncrement - (y % yIncrement) - 1];
+          return { position: newPosition, heading: EAST };
       }
       break;
     case 5:
       switch (`${heading[0]}|${heading[1]}`) {
-        case "0|1":
-          var newPosition = [
-            xIncrement - (x % xIncrement) - 1,
-            yIncrement * 2 - 1,
-          ];
-          return { position: newPosition, heading: NORTH };
-        // return "V";
-        case "0|-1":
-          var newPosition = [x, y - 1];
-          return { position: newPosition, heading: NORTH };
-        case "1|0":
-          var newPosition = [x + 1, y];
-          return { position: newPosition, heading: EAST };
-        case "-1|0":
+        case _SOUTH:
+          var newPosition = [xIncrement - 1, yIncrement * 3 + (x % xIncrement)];
+          return { position: newPosition, heading: WEST };
+        case _NORTH:
+          throw new NotNeededError();
+        case _EAST:
+          var newPosition = [maxX - 1, yIncrement - (y % yIncrement) - 1];
+          return { position: newPosition, heading: WEST };
+        case _WEST:
+          throw new NotNeededError();
           var newPosition = [
             2 * xIncrement - (y % yIncrement) - 1,
             yIncrement * 2 - 1,
           ];
           return { position: newPosition, heading: NORTH };
-        // return "<";
       }
       break;
     case 6:
       switch (`${heading[0]}|${heading[1]}`) {
-        case "0|1":
-          var newPosition = [0, 2 * xIncrement - (x % xIncrement) - 1];
-          return { position: newPosition, heading: EAST };
-        case "0|-1":
+        case _SOUTH:
+          var newPosition = [2 * xIncrement + (x % xIncrement), 0];
+          return { position: newPosition, heading: SOUTH };
+        case _NORTH:
+          throw new NotNeededError();
           var newPosition = [
             xIncrement * 3 - 1,
             2 * xIncrement - (x % xIncrement) - 1,
           ];
           return { position: newPosition, heading: WEST };
-        case "1|0":
-          var newPosition = [
-            xIncrement * 3 - 1,
-            yIncrement - (y % yIncrement) - 1,
-          ];
-          return { position: newPosition, heading: WEST };
-        case "-1|0":
-          var newPosition = [x - 1, y];
-          return { position: newPosition, heading: WEST };
+        case _EAST:
+          var newPosition = [xIncrement + (y % yIncrement), 3 * yIncrement - 1];
+          return { position: newPosition, heading: NORTH };
+        case _WEST:
+          var newPosition = [xIncrement + (y % yIncrement), 0];
+          return { position: newPosition, heading: SOUTH };
       }
       break;
   }
-  throw new Error();
+  throw new Error(`${position}`);
 }
 
 function getNextState(lastState: State): State {
@@ -407,3 +395,6 @@ console.log(score);
 
 logTime();
 export {};
+
+// Part 2
+// 169031 - too high
