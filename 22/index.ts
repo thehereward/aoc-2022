@@ -38,6 +38,41 @@ for (var y = 0; y < maxY; y++) {
     }
   }
 }
+// console.log({ maxX });
+// console.log({ maxY });
+export function getSegment(
+  maxX: number,
+  maxY: number,
+  position: number[]
+): number {
+  const xIncrement = maxX / 4;
+  const yIncrement = maxY / 3;
+  if (xIncrement != yIncrement) {
+    throw new Error();
+  }
+
+  const x = Math.floor(position[0] / xIncrement);
+  const y = Math.floor(position[1] / yIncrement);
+  // console.log({ x, y });
+
+  const s = pointToString(x, y);
+  switch (s) {
+    case "2|0":
+      return 1;
+    case "0|1":
+      return 2;
+    case "1|1":
+      return 3;
+    case "2|1":
+      return 4;
+    case "2|2":
+      return 5;
+    case "2|3":
+      return 6;
+  }
+
+  return 0;
+}
 
 // console.log(mapData);
 
@@ -119,6 +154,7 @@ function printState(state?: State) {
     }
     console.log(line.join(""));
   }
+  console.log("");
 }
 
 function add(a: number[], b: number[]) {
@@ -130,42 +166,53 @@ function add(a: number[], b: number[]) {
 
 const states: State[] = [];
 
-function walkUntilWall(state: State, distance: number): State {
-  if (distance == 0) {
-    return state;
-  }
-  var nextPosition = add(state.position, state.heading);
+function getNextState(lastState: State): State {
+  const heading = lastState.heading;
+  var nextPosition = add(lastState.position, heading);
   var nextPositionString = positionToString(nextPosition);
   if (!mapData.has(nextPositionString)) {
-    const tempHeading = turn(turn(state.heading, "R"), "R");
+    const tempHeading = turn(turn(heading, "R"), "R");
     do {
       nextPosition = add(nextPosition, tempHeading);
       nextPositionString = positionToString(nextPosition);
       // console.log({ nextPosition });
     } while (mapData.has(nextPositionString));
-    nextPosition = add(nextPosition, state.heading);
+    nextPosition = add(nextPosition, heading);
     // console.log({ nextPosition });
     nextPositionString = positionToString(nextPosition);
     // throw new Error();
   }
+  return {
+    position: nextPosition,
+    heading: heading,
+  };
+}
 
-  if (mapData.get(nextPositionString) == "#") {
+function walkUntilWall(state: State, distance: number): State {
+  // printState(state);
+  if (distance == 0) {
+    return state;
+  }
+  var newState = getNextState(state);
+
+  if (mapData.get(positionToString(newState.position)) == "#") {
     return state;
   } else {
-    var newState = { position: nextPosition, heading: state.heading };
-    states.push(state);
     return walkUntilWall(newState, distance - 1);
   }
 }
 
-var state = initialState;
+var globalState = initialState;
 for (var i = 0; i < distances.length; i++) {
   var distance = distances[i];
-  state = walkUntilWall(state, distance);
+  globalState = walkUntilWall(globalState, distance);
+  // throw new Error();
   var direction = directions.shift();
-  var heading = direction ? turn(state.heading, direction) : state.heading;
-  state = {
-    ...state,
+  var heading = direction
+    ? turn(globalState.heading, direction)
+    : globalState.heading;
+  globalState = {
+    ...globalState,
     heading,
   };
   // printState(state);
@@ -173,9 +220,9 @@ for (var i = 0; i < distances.length; i++) {
 }
 
 const score =
-  1000 * (state.position[1] + 1) +
-  4 * (state.position[0] + 1) +
-  getScore(state.heading);
+  1000 * (globalState.position[1] + 1) +
+  4 * (globalState.position[0] + 1) +
+  getScore(globalState.heading);
 
 console.log(score);
 // console.log(distances);
