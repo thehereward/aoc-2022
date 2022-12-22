@@ -1,6 +1,11 @@
 import _ from "lodash";
 import { readFile, getTimeLogger } from "../common";
 
+export const NORTH = [0, -1];
+export const SOUTH = [0, 1];
+export const EAST = [1, 0];
+export const WEST = [-1, 0];
+
 const logTime = getTimeLogger();
 
 var data = readFile("input");
@@ -57,13 +62,13 @@ export function getSegment(
 
   const s = pointToString(x, y);
   switch (s) {
-    case "2|0":
+    case "0|2":
       return 1;
-    case "0|1":
+    case "1|0":
       return 2;
     case "1|1":
       return 3;
-    case "2|1":
+    case "1|2":
       return 4;
     case "2|2":
       return 5;
@@ -166,7 +171,7 @@ function add(a: number[], b: number[]) {
 
 const states: State[] = [];
 
-function getNextState(lastState: State): State {
+function getNextStateOld(lastState: State): State {
   const heading = lastState.heading;
   var nextPosition = add(lastState.position, heading);
   var nextPositionString = positionToString(nextPosition);
@@ -182,6 +187,190 @@ function getNextState(lastState: State): State {
     nextPositionString = positionToString(nextPosition);
     // throw new Error();
   }
+  return {
+    position: nextPosition,
+    heading: heading,
+  };
+}
+
+export function getNextStateHard(
+  maxX: number,
+  maxY: number,
+  position: number[],
+  heading: number[]
+): State {
+  const segment = getSegment(maxX, maxY, position);
+  const yIncrement = maxY / 3;
+  const xIncrement = maxX / 4;
+  const x = position[0];
+  const y = position[1];
+  switch (segment) {
+    case 1:
+      switch (`${heading[0]}|${heading[1]}`) {
+        case "0|1":
+          throw new Error();
+        case "0|-1":
+          var newPosition = [xIncrement - (x % xIncrement) - 1, yIncrement];
+          return { position: newPosition, heading: SOUTH };
+        case "1|0":
+          var newPosition = [maxX - 1, maxY - (y % yIncrement) - 1];
+          return { position: newPosition, heading: WEST };
+        case "1|0":
+        // return ">";
+        case "-1|0":
+          var newPosition = [xIncrement + (y % yIncrement), yIncrement];
+          return { position: newPosition, heading: SOUTH };
+        // return "<";
+      }
+      break;
+    case 2:
+      switch (`${heading[0]}|${heading[1]}`) {
+        case "0|1":
+          var newPosition = [xIncrement * 3 - 1 - x, maxY - 1];
+          return { position: newPosition, heading: NORTH };
+        // return "V";
+        case "0|-1":
+          var newPosition = [xIncrement * 3 - 1 - x, 0];
+          return { position: newPosition, heading: SOUTH };
+        case "1|0":
+          throw new Error();
+        // return ">";
+        case "-1|0":
+          var newPosition = [maxX - (y % yIncrement) - 1, maxY - 1];
+          return { position: newPosition, heading: NORTH };
+        // return "<";
+      }
+      break;
+    case 3:
+      switch (`${heading[0]}|${heading[1]}`) {
+        case "0|1":
+          var newPosition = [
+            xIncrement * 2,
+            maxY - (position[0] % xIncrement) - 1,
+          ];
+          return { position: newPosition, heading: EAST };
+        // return "V";
+        case "0|-1":
+          var newPosition = [xIncrement * 2, position[0] - xIncrement];
+          return { position: newPosition, heading: EAST };
+        case "1|0":
+          throw new Error();
+        // return ">";
+        case "-1|0":
+          throw new Error();
+        // return "<";
+      }
+      break;
+    case 4:
+      switch (`${heading[0]}|${heading[1]}`) {
+        case "0|1":
+          throw new Error();
+        case "0|-1":
+          throw new Error();
+        case "1|0":
+          var newPosition = [maxX - (y % yIncrement) - 1, yIncrement * 2];
+          return { position: newPosition, heading: SOUTH };
+        // return ">";
+        case "-1|0":
+          throw new Error();
+      }
+      break;
+    case 5:
+      switch (`${heading[0]}|${heading[1]}`) {
+        case "0|1":
+          var newPosition = [
+            xIncrement - (x % xIncrement) - 1,
+            yIncrement * 2 - 1,
+          ];
+          return { position: newPosition, heading: NORTH };
+        // return "V";
+        case "0|-1":
+          throw new Error();
+        case "1|0":
+          throw new Error();
+        // return ">";
+        case "-1|0":
+          var newPosition = [
+            2 * xIncrement - (y % yIncrement) - 1,
+            yIncrement * 2 - 1,
+          ];
+          return { position: newPosition, heading: NORTH };
+        // return "<";
+      }
+      break;
+    case 6:
+      switch (`${heading[0]}|${heading[1]}`) {
+        case "0|1":
+          var newPosition = [0, 2 * xIncrement - (x % xIncrement) - 1];
+          return { position: newPosition, heading: EAST };
+        case "0|-1":
+          var newPosition = [
+            xIncrement * 3 - 1,
+            2 * xIncrement - (x % xIncrement) - 1,
+          ];
+          return { position: newPosition, heading: WEST };
+        case "1|0":
+          var newPosition = [
+            xIncrement * 3 - 1,
+            yIncrement - (y % yIncrement) - 1,
+          ];
+          return { position: newPosition, heading: WEST };
+        case "-1|0":
+          throw new Error();
+        // return "<";
+      }
+      break;
+  }
+  throw new Error();
+}
+
+function getNextState(lastState: State): State {
+  const heading = lastState.heading;
+  var nextPosition = add(lastState.position, heading);
+  var nextPositionString = positionToString(nextPosition);
+  if (mapData.has(nextPositionString)) {
+    return {
+      position: nextPosition,
+      heading: heading,
+    };
+  }
+
+  // const segment = getSegment(maxX, maxY, lastState.position);
+  //   switch (segment) {
+  //   case 1:
+  //     switch (`${heading[0]}|${heading[1]}`) {
+  //       case "0|1":
+  //         return "V";
+  //       case "0|-1":
+  //         return "^";
+  //       case "1|0":
+  //         return ">";
+  //       case "-1|0":
+  //         return "V";
+  //     }
+  //     break;
+  //   case 2:
+  //     break;
+  //   case 3:
+  //     break;
+  //   case 4:
+  //     break;
+  //   case 5:
+  //     break;
+  //   case 6:
+  //     break;
+  // }
+  const tempHeading = turn(turn(heading, "R"), "R");
+  do {
+    nextPosition = add(nextPosition, tempHeading);
+    nextPositionString = positionToString(nextPosition);
+    // console.log({ nextPosition });
+  } while (mapData.has(nextPositionString));
+  nextPosition = add(nextPosition, heading);
+  // console.log({ nextPosition });
+  nextPositionString = positionToString(nextPosition);
+  // throw new Error();
+
   return {
     position: nextPosition,
     heading: heading,
