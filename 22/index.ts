@@ -43,15 +43,19 @@ for (var y = 0; y < maxY; y++) {
     }
   }
 }
-// console.log({ maxX });
-// console.log({ maxY });
+console.log({ maxX });
+console.log({ maxY });
 export function getSegment(
   maxX: number,
   maxY: number,
   position: number[]
 ): number {
+  console.log(maxX);
+  console.log(maxY);
   const xIncrement = maxX / 4;
   const yIncrement = maxY / 3;
+  console.log(xIncrement);
+  console.log(yIncrement);
   if (xIncrement != yIncrement) {
     throw new Error();
   }
@@ -199,6 +203,15 @@ export function getNextStateHard(
   position: number[],
   heading: number[]
 ): State {
+  var nextPosition = add(position, heading);
+  var nextPositionString = positionToString(nextPosition);
+  if (mapData.has(nextPositionString)) {
+    return {
+      position: nextPosition,
+      heading: heading,
+    };
+  }
+
   const segment = getSegment(maxX, maxY, position);
   const yIncrement = maxY / 3;
   const xIncrement = maxX / 4;
@@ -208,15 +221,14 @@ export function getNextStateHard(
     case 1:
       switch (`${heading[0]}|${heading[1]}`) {
         case "0|1":
-          throw new Error();
+          var newPosition = [x, y + 1];
+          return { position: newPosition, heading: SOUTH };
         case "0|-1":
           var newPosition = [xIncrement - (x % xIncrement) - 1, yIncrement];
           return { position: newPosition, heading: SOUTH };
         case "1|0":
           var newPosition = [maxX - 1, maxY - (y % yIncrement) - 1];
           return { position: newPosition, heading: WEST };
-        case "1|0":
-        // return ">";
         case "-1|0":
           var newPosition = [xIncrement + (y % yIncrement), yIncrement];
           return { position: newPosition, heading: SOUTH };
@@ -233,8 +245,8 @@ export function getNextStateHard(
           var newPosition = [xIncrement * 3 - 1 - x, 0];
           return { position: newPosition, heading: SOUTH };
         case "1|0":
-          throw new Error();
-        // return ">";
+          var newPosition = [x + 1, y];
+          return { position: newPosition, heading: EAST };
         case "-1|0":
           var newPosition = [maxX - (y % yIncrement) - 1, maxY - 1];
           return { position: newPosition, heading: NORTH };
@@ -249,30 +261,31 @@ export function getNextStateHard(
             maxY - (position[0] % xIncrement) - 1,
           ];
           return { position: newPosition, heading: EAST };
-        // return "V";
         case "0|-1":
           var newPosition = [xIncrement * 2, position[0] - xIncrement];
           return { position: newPosition, heading: EAST };
         case "1|0":
-          throw new Error();
-        // return ">";
+          var newPosition = [x + 1, y];
+          return { position: newPosition, heading: EAST };
         case "-1|0":
-          throw new Error();
-        // return "<";
+          var newPosition = [x - 1, y];
+          return { position: newPosition, heading: WEST };
       }
       break;
     case 4:
       switch (`${heading[0]}|${heading[1]}`) {
         case "0|1":
-          throw new Error();
+          var newPosition = [x, y + 1];
+          return { position: newPosition, heading: SOUTH };
         case "0|-1":
-          throw new Error();
+          var newPosition = [x, y - 1];
+          return { position: newPosition, heading: NORTH };
         case "1|0":
           var newPosition = [maxX - (y % yIncrement) - 1, yIncrement * 2];
           return { position: newPosition, heading: SOUTH };
-        // return ">";
         case "-1|0":
-          throw new Error();
+          var newPosition = [x - 1, y];
+          return { position: newPosition, heading: WEST };
       }
       break;
     case 5:
@@ -285,10 +298,11 @@ export function getNextStateHard(
           return { position: newPosition, heading: NORTH };
         // return "V";
         case "0|-1":
-          throw new Error();
+          var newPosition = [x, y - 1];
+          return { position: newPosition, heading: NORTH };
         case "1|0":
-          throw new Error();
-        // return ">";
+          var newPosition = [x + 1, y];
+          return { position: newPosition, heading: EAST };
         case "-1|0":
           var newPosition = [
             2 * xIncrement - (y % yIncrement) - 1,
@@ -316,8 +330,8 @@ export function getNextStateHard(
           ];
           return { position: newPosition, heading: WEST };
         case "-1|0":
-          throw new Error();
-        // return "<";
+          var newPosition = [x - 1, y];
+          return { position: newPosition, heading: WEST };
       }
       break;
   }
@@ -335,31 +349,6 @@ function getNextState(lastState: State): State {
     };
   }
 
-  // const segment = getSegment(maxX, maxY, lastState.position);
-  //   switch (segment) {
-  //   case 1:
-  //     switch (`${heading[0]}|${heading[1]}`) {
-  //       case "0|1":
-  //         return "V";
-  //       case "0|-1":
-  //         return "^";
-  //       case "1|0":
-  //         return ">";
-  //       case "-1|0":
-  //         return "V";
-  //     }
-  //     break;
-  //   case 2:
-  //     break;
-  //   case 3:
-  //     break;
-  //   case 4:
-  //     break;
-  //   case 5:
-  //     break;
-  //   case 6:
-  //     break;
-  // }
   const tempHeading = turn(turn(heading, "R"), "R");
   do {
     nextPosition = add(nextPosition, tempHeading);
@@ -382,7 +371,8 @@ function walkUntilWall(state: State, distance: number): State {
   if (distance == 0) {
     return state;
   }
-  var newState = getNextState(state);
+  var newState = getNextStateHard(maxX, maxY, state.position, state.heading);
+  // var newState = getNextState(state);
 
   if (mapData.get(positionToString(newState.position)) == "#") {
     return state;
@@ -404,8 +394,6 @@ for (var i = 0; i < distances.length; i++) {
     ...globalState,
     heading,
   };
-  // printState(state);
-  // console.log("");
 }
 
 const score =

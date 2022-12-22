@@ -59,6 +59,8 @@ describe("get next state (north)", () => {
     [[8, 0], [3, 4], SOUTH],
     [[1, 4], [10, 0], SOUTH],
     [[4, 4], [8, 0], EAST],
+    [[8, 4], [8, 3], NORTH],
+    [[8, 8], [8, 7], NORTH],
     [[14, 8], [11, 5], WEST],
   ]).test(
     "position %s results in position %s and heading %s",
@@ -73,8 +75,10 @@ describe("get next state (south)", () => {
   const maxX = 16;
   const maxY = 12;
   each([
+    [[8, 3], [8, 4], SOUTH],
     [[1, 7], [10, 11], NORTH],
     [[4, 7], [8, 11], EAST],
+    [[8, 7], [8, 8], SOUTH],
     [[10, 11], [1, 7], NORTH],
     [[12, 11], [0, 7], EAST],
   ]).test(
@@ -91,7 +95,10 @@ describe("get next state (east)", () => {
   const maxY = 12;
   each([
     [[11, 0], [15, 11], WEST],
+    [[3, 4], [4, 4], EAST],
+    [[7, 4], [8, 4], EAST],
     [[11, 5], [14, 8], SOUTH],
+    [[11, 8], [12, 8], EAST],
     [[15, 9], [11, 2], WEST],
   ]).test(
     "position %s results in position %s and heading %s",
@@ -108,12 +115,30 @@ describe("get next state (west)", () => {
   each([
     [[8, 0], [4, 4], SOUTH],
     [[0, 5], [14, 11], NORTH],
+    [[4, 5], [3, 5], WEST],
+    [[8, 5], [7, 5], WEST],
     [[8, 9], [6, 7], NORTH],
+    [[12, 8], [11, 8], WEST],
   ]).test(
     "position %s results in position %s and heading %s",
     (pos, expectedPosition, expectedHeading) => {
       expect(gns(maxX, maxY, pos, WEST).position).toEqual(expectedPosition);
       expect(gns(maxX, maxY, pos, WEST).heading).toEqual(expectedHeading);
+    }
+  );
+});
+
+describe("specific cases", () => {
+  const maxX = 16;
+  const maxY = 12;
+  each([
+    [[8, 0], EAST, [9, 0], EAST],
+    [[9, 0], EAST, [10, 0], EAST],
+  ]).test(
+    "position %s results in position %s",
+    (pos, head, expectedPosition, expectedHeading) => {
+      expect(gns(maxX, maxY, pos, head).position).toEqual(expectedPosition);
+      expect(gns(maxX, maxY, pos, head).heading).toEqual(expectedHeading);
     }
   );
 });
