@@ -151,6 +151,8 @@ data.forEach((line, y) => {
   });
 });
 
+var wereMoves = true;
+
 function iterate(elves: Elf[]): Elf[] {
   const currentPositions = new Set<String>();
   const nextPositions = new Set<String>();
@@ -165,6 +167,11 @@ function iterate(elves: Elf[]): Elf[] {
       currentPositions.has(coordToString(neighbour))
     )
   );
+
+  if (elvesToMove.length == 0) {
+    wereMoves = false;
+    return elves;
+  }
 
   function canMoveInDirection(elf: Elf, directions: Direction[]): boolean {
     return !directions
@@ -213,12 +220,20 @@ function iterate(elves: Elf[]): Elf[] {
   return elves;
 }
 
-for (var i = 0; i < 10; i++) {
+var count = 0;
+while (wereMoves) {
   elves = iterate(elves);
+  count++;
 }
+console.log({ count });
+// for (var i = 0; i < 10; i++) {
+//   if (!wereMoves){
+//     break
+//   }
+// }
 // printState(elves);
-const answer = calculateAnswer(elves);
-console.log({ answer });
+// const answer = calculateAnswer(elves);
+// console.log({ answer });
 
 logTime();
 export {};
