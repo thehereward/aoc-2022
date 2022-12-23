@@ -1,4 +1,4 @@
-import _, { orderBy } from "lodash";
+import _ from "lodash";
 import { readFile, getTimeLogger } from "../common";
 
 export const NW: Direction = [-1, -1];
@@ -25,7 +25,6 @@ type Coords = number[];
 
 class Elf {
   position: Coords;
-  neighbours: Coords[];
   nextPosition?: Coords;
 }
 
@@ -57,36 +56,25 @@ function add(a: number[], b: number[]) {
   return [a[0] + b[0], a[1] + b[1]];
 }
 
-function printState(elves: Elf[]) {
-  const max = elves.reduce(
-    (a, c) => {
-      if (c.position[0] > a[0]) {
-        a[0] = c.position[0];
-      }
-      if (c.position[1] > a[1]) {
-        a[1] = c.position[1];
-      }
-      return a;
-    },
-    [-Infinity, -Infinity]
-  );
-  const min = elves.reduce(
-    (a, c) => {
-      if (c.position[0] < a[0]) {
-        a[0] = c.position[0];
-      }
-      if (c.position[1] < a[1]) {
-        a[1] = c.position[1];
-      }
-      return a;
-    },
-    [Infinity, Infinity]
-  );
+const getMax = (a: Coords, c: Elf) => {
+  a[0] = Math.max(c.position[0], a[0]);
+  a[1] = Math.max(c.position[1], a[1]);
+  return a;
+};
 
-  const currentPositions = new Set<string>();
-  elves.forEach((elf) => {
-    currentPositions.add(coordToString(elf.position));
-  });
+const getMin = (a: Coords, c: Elf) => {
+  a[0] = Math.min(c.position[0], a[0]);
+  a[1] = Math.min(c.position[1], a[1]);
+  return a;
+};
+
+function printState(elves: Elf[]) {
+  const max = elves.reduce(getMax, [-Infinity, -Infinity]);
+  const min = elves.reduce(getMin, [Infinity, Infinity]);
+
+  const currentPositions = new Set<string>(
+    elves.map((e) => coordToString(e.position))
+  );
 
   for (var y = min[1]; y <= max[1]; y++) {
     var line: string[] = [];
@@ -103,33 +91,9 @@ function printState(elves: Elf[]) {
 }
 
 function calculateAnswer(elves: Elf[]) {
-  const max = elves.reduce(
-    (a, c) => {
-      if (c.position[0] > a[0]) {
-        a[0] = c.position[0];
-      }
-      if (c.position[1] > a[1]) {
-        a[1] = c.position[1];
-      }
-      return a;
-    },
-    [-Infinity, -Infinity]
-  );
-  const min = elves.reduce(
-    (a, c) => {
-      if (c.position[0] < a[0]) {
-        a[0] = c.position[0];
-      }
-      if (c.position[1] < a[1]) {
-        a[1] = c.position[1];
-      }
-      return a;
-    },
-    [Infinity, Infinity]
-  );
+  const max = elves.reduce(getMax, [-Infinity, -Infinity]);
+  const min = elves.reduce(getMin, [Infinity, Infinity]);
 
-  // console.log({ max });
-  // console.log({ min });
   const rectangle = (max[0] - min[0] + 1) * (max[1] - min[1] + 1);
   return rectangle - elves.length;
 }
@@ -137,41 +101,26 @@ function calculateAnswer(elves: Elf[]) {
 // x →
 // y ↓
 
-var elves: Elf[] = [];
+const initialElves: Elf[] = [];
 
 var data = readFile("input");
 data.forEach((line, y) => {
   line.split("").forEach((char, x) => {
     if (char == "#") {
-      elves.push({
+      initialElves.push({
         position: [x, y],
-        neighbours: [],
       });
     }
   });
 });
 
-var wereMoves = true;
-
-function iterate(elves: Elf[]): Elf[] {
+function iterate(
+  elves: Elf[],
+  count: number
+): { elves: Elf[]; moved?: boolean } {
   const currentPositions = new Set<String>();
   const nextPositions = new Set<String>();
   const clashes = new Set<String>();
-  elves.forEach((elf) => {
-    elf.neighbours = getNeighbours(elf.position[0], elf.position[1]);
-    currentPositions.add(coordToString(elf.position));
-  });
-
-  const elvesToMove = elves.filter((elf) =>
-    elf.neighbours.some((neighbour) =>
-      currentPositions.has(coordToString(neighbour))
-    )
-  );
-
-  if (elvesToMove.length == 0) {
-    wereMoves = false;
-    return elves;
-  }
 
   function canMoveInDirection(elf: Elf, directions: Direction[]): boolean {
     return !directions
@@ -179,14 +128,31 @@ function iterate(elves: Elf[]): Elf[] {
       .some((d) => currentPositions.has(coordToString(d)));
   }
 
+  elves.forEach((elf) => {
+    currentPositions.add(coordToString(elf.position));
+  });
+
+  function canMove(elf: Elf): boolean {
+    return getNeighbours(elf.position[0], elf.position[1]).some((neighbour) =>
+      currentPositions.has(coordToString(neighbour))
+    );
+  }
+
+  const elvesToMove = elves.filter(canMove);
+
   elvesToMove.forEach((elf) => {
     for (var i = 0; i < ORDER.length; i++) {
-      const direction = ORDER[i % ORDER.length];
+      const direction = ORDER[(i + count) % ORDER.length];
       if (elf.nextPosition == undefined && canMoveInDirection(elf, direction)) {
         elf.nextPosition = add(elf.position, direction[1]);
+        break;
       }
     }
   });
+
+  if (elvesToMove.length == 0) {
+    return { elves, moved: false };
+  }
 
   elvesToMove
     .filter((elf) => elf.nextPosition != undefined)
@@ -200,40 +166,36 @@ function iterate(elves: Elf[]): Elf[] {
       }
     });
 
-  elves.forEach((elf) => {
-    if (elf.nextPosition != undefined) {
+  elves
+    .filter((elf) => elf.nextPosition != undefined)
+    .forEach((elf) => {
       const nextPositionString = coordToString(elf.nextPosition);
       if (clashes.has(nextPositionString)) {
         elf.nextPosition = undefined;
       }
-    }
 
-    if (elf.nextPosition != undefined) {
-      elf.position = elf.nextPosition;
-    }
-    elf.nextPosition = undefined;
-  });
+      if (elf.nextPosition != undefined) {
+        elf.position = elf.nextPosition;
+      }
+      elf.nextPosition = undefined;
+    });
 
-  const first = ORDER.shift();
-  ORDER.push(first);
-
-  return elves;
+  return { elves, moved: true };
 }
 
+var elves = initialElves;
 var count = 0;
+var wereMoves = true;
 while (wereMoves) {
-  elves = iterate(elves);
+  var { elves, moved } = iterate(elves, count);
+  wereMoves = moved;
   count++;
+  if (count == 10) {
+    const answer = calculateAnswer(elves);
+    logTime(`Part 1: ${answer}`);
+  }
 }
-console.log({ count });
-// for (var i = 0; i < 10; i++) {
-//   if (!wereMoves){
-//     break
-//   }
-// }
-// printState(elves);
-// const answer = calculateAnswer(elves);
-// console.log({ answer });
+logTime(`Part 2: ${count}`);
 
 logTime();
 export {};
