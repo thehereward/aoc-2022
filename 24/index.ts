@@ -224,26 +224,33 @@ export function getBlizzardAtTime(
   };
 }
 
+const blizzardCache = new Map<number, Blizzard[]>();
+
 function getBlizzardsAtTime(blizzards: Blizzard[], time: number) {
-  return blizzards.map((b) => getBlizzardAtTime(b, time, bounds));
-}
-function isAtEnd(p: Coords) {
-  return p[0] == end[0] && p[1] == end[1];
+  const cTime = time % CYCLE;
+  if (blizzardCache.has(cTime)) {
+    return blizzardCache.get(cTime);
+  }
+
+  const newBlizzards = blizzards.map((b) => getBlizzardAtTime(b, time, bounds));
+  blizzardCache.set(time, newBlizzards);
+  return newBlizzards;
 }
 
-function isAtStart(p: Coords) {
-  return p[0] == start[0] && p[1] == start[1];
+// Warming the cache
+logTime("Start warming the cache");
+for (var i = 0; i < CYCLE; i++) {
+  getBlizzardsAtTime(blizzards, i);
 }
+logTime("Finish warming the cache");
 
 var globalTime = 0;
 
 console.log({ start });
 console.log({ end });
 
-function runUntilSuccess(
-  currentStates: Coords[],
-  isSuccess: (coord: Coords) => boolean
-) {
+function runUntilSuccess(currentStates: Coords[], target: Coords) {
+  const targetString = coordToString(target);
   var finished = false;
   while (!finished) {
     globalTime++;
@@ -251,7 +258,6 @@ function runUntilSuccess(
     currentStates = currentStates.flatMap((history) =>
       getNextPositions(history, _blizzards)
     );
-    finished = currentStates.some((currentState) => isSuccess(currentState));
     const stateSet = new Set<string>();
     currentStates.forEach((state) => {
       stateSet.add(coordToString(state));
@@ -260,18 +266,22 @@ function runUntilSuccess(
     stateSet.forEach((e) =>
       currentStates.push(e.split("|").map((c) => parseInt(c)))
     );
-    // if (globalTime % 1000 == 0) {
-    //   logTime(
-    //     `Time: ${globalTime} | Possible Positions : ${currentStates.length}`
-    //   );
-    // }
+    finished = stateSet.has(targetString);
+    if (globalTime % 10 == 0) {
+      logTime(
+        `Time: ${globalTime} | Possible Positions : ${currentStates.length}`
+      );
+    }
   }
 }
 
-runUntilSuccess([start], isAtEnd);
+logTime("Starting first journey");
+runUntilSuccess([start], end);
 logTime(`Part 1: ${globalTime}`);
-runUntilSuccess([end], isAtStart);
-runUntilSuccess([start], isAtEnd);
+logTime("Starting second journey");
+runUntilSuccess([end], start);
+logTime("Starting third journey");
+runUntilSuccess([start], end);
 logTime(`Part 2: ${globalTime}`);
 
 logTime();
